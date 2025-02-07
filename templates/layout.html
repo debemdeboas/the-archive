@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <script src="https://unpkg.com/htmx.org@2.0.4"></script>
+    <script src="https://unpkg.com/htmx-ext-sse@2.2.2/sse.js"></script>
+    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <script src="/static/index.js"></script>
+    <title>{{template "title" .}}</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="/static/style.css" />
+  </head>
+  <body class="{{.Theme}}">
+    <nav class="navbar">
+      <button
+        hx-post="/theme/toggle"
+        hx-swap="innerHTML"
+        hx-target=".theme-icon"
+        hx-trigger="click"
+        class="theme-toggle"
+      >
+        <span
+          class="theme-icon"
+          hx-get="/theme/opposite-icon"
+          hx-trigger="load"
+        >
+        </span>
+      </button>
+      <select
+        hx-post="/syntax-theme/set"
+        hx-trigger="change"
+        hx-swap="innerHTML"
+        hx-target="#syntax-highlight"
+        class="syntax-theme-select"
+        name="syntax-theme-select"
+      >
+        {{range .SyntaxThemes}}
+        <option value="{{.}}" {{ if eq . $.SyntaxTheme }}selected{{ end }}>
+          {{.}}
+        </option>
+        {{end}}
+      </select>
+      {{if $.IsPost}}
+      <div class="navbar-center">
+        <h1><a href="/" id="nav-go-home">Rafa's Archive</a></h1>
+      </div>
+      {{end}}
+    </nav>
+    <style id="syntax-highlight">{{.SyntaxCSS}}</style>
+
+    <div class="container">
+      {{if not $.IsPost }}
+      <header>
+        <h1><a href="/">Rafa's Archive</a></h1>
+      </header>
+      {{end}}
+      <main id="content">{{template "content" .}}</main>
+      <footer>
+        <p>© 2025 debem solutions in technology</p>
+      </footer>
+    </div>
+  </body>
+  <script>
+    document.body.addEventListener("themeChanged", (evt) => {
+      document.body.className = evt.detail.value;
+      const themeIconSpan = document.querySelector(".theme-icon");
+      const syntaxThemeSelect = document.querySelector(".syntax-theme-select");
+
+      if (syntaxThemeSelect.value !== evt.detail.syntaxTheme) {
+        syntaxThemeSelect.value = evt.detail.syntaxTheme;
+        htmx.ajax("GET", "/syntax-theme/" + evt.detail.syntaxTheme, "#syntax-highlight", {
+          headers: {
+            "hx-target": "#syntax-highlight",
+            "hx-swap": "innerHTML",
+          },
+        });
+      }
+
+      htmx.trigger(themeIconSpan, "load");
+    });
+
+    window.MathJax = {
+      tex: {
+        inlineMath: [['$', '$'], ['\\(', '\\)']],
+        displayMath: [['$$', '$$'], ['\\[', '\\]']]
+      },
+      svg: {
+        scale: 1.2,                  
+        minScale: 1.2,              
+        matchFontHeight: true,    
+        mtextInheritFont: true    
+      },
+
+      startup: {
+        pageReady: () => {
+          return MathJax.startup.defaultPageReady().then(() => {
+            const content = document.getElementById('post-content');
+            if (content) {
+              content.classList.add('mathjax-ready');
+            }
+          });
+        }
+      }
+    };
+  </script>
+</html>
