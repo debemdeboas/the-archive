@@ -408,7 +408,12 @@ func main() {
 	go postRepository.ReloadPosts()
 
 	securedMux := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		secureHeaders(mux.ServeHTTP)(w, r)
+		// Ignore robots.txt
+		if r.URL.Path == "/robots.txt" {
+			mux.ServeHTTP(w, r)
+		} else {
+			secureHeaders(mux.ServeHTTP)(w, r)
+		}
 	})
 
 	log.Fatal(http.ListenAndServe(ServerAddr+":"+ServerPort, cacheIt(securedMux)))
