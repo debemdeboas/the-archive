@@ -355,7 +355,6 @@ func main() {
 
 	mux.Handle(StaticUrlPath, http.StripPrefix(StaticUrlPath, http.FileServer(http.FS(static))))
 
-	mux.HandleFunc("/", serveIndex)
 	mux.HandleFunc(PostsUrlPath, servePost)
 
 	mux.HandleFunc("/robots.txt", func(w http.ResponseWriter, r *http.Request) {
@@ -397,6 +396,8 @@ func main() {
 		w.WriteHeader(http.StatusOK)
 		w.Write(htmlContent)
 	})
+
+	mux.HandleFunc("/", serveIndex)
 
 	// Load posts into cache
 	var err error
