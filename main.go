@@ -358,6 +358,12 @@ func main() {
 	mux.HandleFunc("/", serveIndex)
 	mux.HandleFunc(PostsUrlPath, servePost)
 
+	mux.HandleFunc("/robots.txt", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set(HCType, "text/plain")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte("User-agent: *\nDisallow:"))
+	})
+
 	mux.HandleFunc("/theme/opposite-icon", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set(HCType, CTypeHTML)
 		w.WriteHeader(http.StatusOK)
