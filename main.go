@@ -31,7 +31,7 @@ var staticCache = make(map[string]string)
 
 const (
 	ServerAddr = "0.0.0.0"
-	ServerPort = "8080"
+	ServerPort = "12600"
 )
 
 const (
