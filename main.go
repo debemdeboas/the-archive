@@ -329,7 +329,7 @@ func secureHeaders(h http.HandlerFunc) http.HandlerFunc {
 		w.Header().Set(
 			"Content-Security-Policy",
 			"default-src 'self' *.debem.dev;"+
-				"script-src 'self' 'unsafe-inline' *.debem.dev unpkg.com cdn.jsdelivr.net;"+
+				"script-src 'self' 'unsafe-inline' *.debem.dev unpkg.com cdn.jsdelivr.net *.cloudflareinsights.com;"+
 				"style-src 'self' 'unsafe-inline' *.debem.dev cdnjs.cloudflare.com;"+
 				"font-src 'self' cdnjs.cloudflare.com cdn.jsdelivr.net;"+
 				"img-src *;"+
