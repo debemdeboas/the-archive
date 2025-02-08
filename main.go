@@ -306,18 +306,13 @@ func contentHash(content []byte) string {
 
 func cacheIt(h http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/theme/opposite-icon" {
-			w.Header().Set(HCacheControl, "no-store, max-age=0")
-			w.Header().Set("Pragma", "no-cache")
-			w.Header().Set("Expires", "0")
-		} else {
-			addCacheHeaders(w)
+		addCacheHeaders(w)
 
-			// Add etag header to response if it's a static file
-			if hash, ok := staticCache[r.URL.Path]; ok {
-				w.Header().Set(HETag, hash)
-			}
+		// Add etag header to response if it's a static file
+		if hash, ok := staticCache[r.URL.Path]; ok {
+			w.Header().Set(HETag, hash)
 		}
+
 		h(w, r)
 	}
 }
@@ -331,7 +326,7 @@ func secureHeaders(h http.HandlerFunc) http.HandlerFunc {
 		w.Header().Set(
 			"Content-Security-Policy",
 			"default-src 'self' *.debem.dev;"+
-				"script-src 'self' 'unsafe-inline' *.debem.dev unpkg.com cdn.jsdelivr.net *.cloudflareinsights.com;"+
+				"script-src 'self' 'unsafe-inline' 'unsafe-eval' *.debem.dev unpkg.com cdn.jsdelivr.net *.cloudflareinsights.com;"+
 				"style-src 'self' 'unsafe-inline' *.debem.dev cdnjs.cloudflare.com;"+
 				"font-src 'self' cdnjs.cloudflare.com cdn.jsdelivr.net;"+
 				"img-src *;"+
@@ -366,9 +361,15 @@ func main() {
 	})
 
 	mux.HandleFunc("/theme/opposite-icon", func(w http.ResponseWriter, r *http.Request) {
+		theme := r.URL.Query().Get("theme")
+		if theme == "" {
+			http.Error(w, "theme required", http.StatusBadRequest)
+			return
+		}
+
 		w.Header().Set(HCType, CTypeHTML)
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(getThemeIcon(getThemeFromRequest(r))))
+		w.Write([]byte(getThemeIcon(theme)))
 	})
 
 	mux.HandleFunc("/theme/toggle", serveThemePostToggle)

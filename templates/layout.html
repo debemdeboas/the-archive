@@ -25,6 +25,7 @@
           class="theme-icon"
           hx-get="/theme/opposite-icon"
           hx-trigger="load"
+          hx-vals='js:{"theme": getCurrentTheme()}'
         >
         </span>
       </button>
@@ -63,47 +64,4 @@
     </div>
   </body>
   <!-- Cloudflare Web Analytics --><script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "3c7facff57df448dae50146bda5b4ef8"}'></script><!-- End Cloudflare Web Analytics -->
-  <script>
-    document.body.addEventListener("themeChanged", (evt) => {
-      document.body.className = evt.detail.value;
-      const themeIconSpan = document.querySelector(".theme-icon");
-      const syntaxThemeSelect = document.querySelector(".syntax-theme-select");
-
-      if (syntaxThemeSelect.value !== evt.detail.syntaxTheme) {
-        syntaxThemeSelect.value = evt.detail.syntaxTheme;
-        htmx.ajax("GET", "/syntax-theme/" + evt.detail.syntaxTheme, "#syntax-highlight", {
-          headers: {
-            "hx-target": "#syntax-highlight",
-            "hx-swap": "innerHTML",
-          },
-        });
-      }
-
-      htmx.trigger(themeIconSpan, "load");
-    });
-
-    window.MathJax = {
-      tex: {
-        inlineMath: [['$', '$'], ['\\(', '\\)']],
-        displayMath: [['$$', '$$'], ['\\[', '\\]']]
-      },
-      svg: {
-        scale: 1.2,                  
-        minScale: 1.2,              
-        matchFontHeight: true,    
-        mtextInheritFont: true    
-      },
-
-      startup: {
-        pageReady: () => {
-          return MathJax.startup.defaultPageReady().then(() => {
-            const content = document.getElementById('post-content');
-            if (content) {
-              content.classList.add('mathjax-ready');
-            }
-          });
-        }
-      }
-    };
-  </script>
 </html>
