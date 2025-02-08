@@ -41,7 +41,7 @@ const (
 	LightThemeIcon string = `<img style="width: 1rem" src="/static/svg/fa-sun.svg"></img>`
 	DarkThemeIcon  string = `<img style="width: 1rem" src="/static/svg/fa-moon.svg"></img>`
 
-	DefaultDarkSyntaxTheme  string = "native"
+	DefaultDarkSyntaxTheme  string = "gruvbox"
 	DefaultLightSyntaxTheme string = "base16-snazzy"
 
 	DefaultTheme string = DarkTheme
