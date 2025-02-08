@@ -17,10 +17,10 @@ import (
 	"sync"
 	"time"
 
-	"github.com/alecthomas/chroma"
-	"github.com/alecthomas/chroma/formatters/html"
-	"github.com/alecthomas/chroma/lexers"
-	"github.com/alecthomas/chroma/styles"
+	chroma "github.com/alecthomas/chroma/v2"
+	"github.com/alecthomas/chroma/v2/formatters/html"
+	"github.com/alecthomas/chroma/v2/lexers"
+	"github.com/alecthomas/chroma/v2/styles"
 	"github.com/gomarkdown/markdown"
 	"github.com/gomarkdown/markdown/ast"
 	md_html "github.com/gomarkdown/markdown/html"
@@ -245,7 +245,9 @@ func getSyntaxThemeFromRequest(r *http.Request) string {
 }
 
 func getSyntaxThemes() []string {
-	return styles.Names()
+	styleNames := styles.Names()
+	slices.Sort(styleNames)
+	return styleNames
 }
 
 func getFormatter() *html.Formatter {
