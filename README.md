@@ -1,4 +1,4 @@
-# [The Archive](https://github.com/debemdeboas/rafas-archive)
+# [The Archive](https://github.com/debemdeboas/the-archive)
 
 This repository is a collection of my notes, thoughts, and ideas.
 It is a place where I can store and organize my knowledge.

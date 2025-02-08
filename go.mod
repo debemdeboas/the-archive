@@ -1,4 +1,4 @@
-module github.com/debemdeboas/rafas-archive
+module github.com/debemdeboas/the-archive
 
 go 1.22.0
 
