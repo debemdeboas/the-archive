@@ -38,8 +38,8 @@ const (
 	LightTheme string = "light-theme"
 	DarkTheme  string = "dark-theme"
 
-	LightThemeIcon string = `<i class="fas fa-sun"></i>`
-	DarkThemeIcon  string = `<i class="fas fa-moon"></i>`
+	LightThemeIcon string = `<img style="scale: 0.7" src="/static/svg/fa-sun.svg"></img>`
+	DarkThemeIcon  string = `<img style="scale: 0.65" src="/static/svg/fa-moon.svg"></img>`
 
 	DefaultDarkSyntaxTheme  string = "native"
 	DefaultLightSyntaxTheme string = "base16-snazzy"
@@ -333,7 +333,7 @@ func secureHeaders(h http.HandlerFunc) http.HandlerFunc {
 				"style-src 'self' 'unsafe-inline' *.debem.dev cdnjs.cloudflare.com;"+
 				"font-src 'self' cdnjs.cloudflare.com cdn.jsdelivr.net;"+
 				"img-src *;"+
-				"object-src 'none'",
+				"object-src 'self' 'unsafe-inline' *.debem.dev;",
 		)
 
 		h(w, r)
