@@ -206,7 +206,6 @@ body.light-theme #nav-go-home:hover {
   background-color: var(--bg-color, #181818);
 }
 
-
 /* Markdown theme */
 
 /* Classic Computing Theme - Dark variant (Amber) */
@@ -260,6 +259,48 @@ body.dark-theme main#content em {
   font-style: italic;
 }
 
+body.dark-theme main#content blockquote {
+  border-left: 3px solid rgba(255, 176, 0, 0.4);
+  margin: 1.5em 0;
+  padding: 0.5em 0 0.5em 1.5em;
+  background: rgba(255, 176, 0, 0.05);
+  text-shadow: 0 0 4px rgba(255, 176, 0, 0.2);
+}
+
+body.dark-theme main#content code:not(pre code) {
+  color: #ffcc00;
+  background: rgba(255, 176, 0, 0.1);
+  padding: 0.2em 0.4em;
+  border-radius: 3px;
+  text-shadow: 0 0 4px rgba(255, 204, 0, 0.4);
+}
+
+body.dark-theme main#content table tfoot {
+  border-top: 2px solid rgba(255, 176, 0, 0.4);
+  font-style: normal;
+  color: #ff9900;
+}
+
+body.dark-theme main#content dl {
+  margin: 1.5em 0;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0 1em;
+  align-items: baseline;
+}
+
+body.dark-theme main#content dt {
+  color: #ffb000;
+  font-weight: 600;
+  text-shadow: 0 0 6px rgba(255, 176, 0, 0.6),
+               0 0 12px rgba(255, 176, 0, 0.3);
+}
+
+body.dark-theme main#content dd {
+  margin: 0;
+  color: inherit;
+}
+
 /* Classic Computing Theme - Light variant (Amber) */
 body.light-theme main#content h1 {
   color: #884400;
@@ -309,6 +350,48 @@ body.light-theme main#content strong {
 body.light-theme main#content em {
   color: #ee5500;
   font-style: italic;
+}
+
+body.light-theme main#content blockquote {
+  border-left: 3px solid rgba(136, 68, 0, 0.3);
+  margin: 1.5em 0;
+  padding: 0.5em 0 0.5em 1.5em;
+  background: rgba(136, 68, 0, 0.05);
+  text-shadow: 0 0 2px rgba(136, 68, 0, 0.1);
+}
+
+body.light-theme main#content code:not(pre code) {
+  color: #993300;
+  background: rgba(136, 68, 0, 0.08);
+  padding: 0.2em 0.4em;
+  border-radius: 3px;
+  text-shadow: 0 0 2px rgba(153, 51, 0, 0.2);
+}
+
+body.light-theme main#content table tfoot {
+  border-top: 2px solid rgba(136, 68, 0, 0.3);
+  font-style: normal;
+  color: #993300;
+}
+
+body.light-theme main#content dl {
+  margin: 1.5em 0;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0 1em;
+  align-items: baseline;
+}
+
+body.light-theme main#content dt {
+  color: #884400;
+  font-weight: 600;
+  text-shadow: 0 0 4px rgba(136, 68, 0, 0.8),
+               0 0 8px rgba(136, 68, 0, 0.4);
+}
+
+body.light-theme main#content dd {
+  margin: 0;
+  color: inherit;  /* Uses parent text color instead of amber */
 }
 
 table th,
