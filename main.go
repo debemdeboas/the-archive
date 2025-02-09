@@ -381,6 +381,8 @@ func main() {
 	mux.HandleFunc("/webhook/reload", webhookReloadHandler)
 
 	mux.HandleFunc("/partials/post", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Cache-Control", "no-cache")
+
 		path := r.URL.Query().Get("post")
 		if path == "" {
 			http.NotFound(w, r)
