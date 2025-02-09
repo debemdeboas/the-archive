@@ -156,6 +156,14 @@ body.light-theme #nav-go-home:hover {
   transform: translateX(-50%);
 }
 
+@media (max-width: 768px) {
+  .navbar-center {
+    font-size: 13px;
+    width: 40px;
+    left: 28%;
+  }
+}
+
 .theme-toggle {
   background: transparent;
   border: 1px solid var(--border-color, #3d3d3d);
@@ -292,8 +300,7 @@ body.dark-theme main#content dl {
 body.dark-theme main#content dt {
   color: #ffb000;
   font-weight: 600;
-  text-shadow: 0 0 6px rgba(255, 176, 0, 0.6),
-               0 0 12px rgba(255, 176, 0, 0.3);
+  text-shadow: 0 0 6px rgba(255, 176, 0, 0.6), 0 0 12px rgba(255, 176, 0, 0.3);
 }
 
 body.dark-theme main#content dd {
@@ -385,8 +392,7 @@ body.light-theme main#content dl {
 body.light-theme main#content dt {
   color: #884400;
   font-weight: 600;
-  text-shadow: 0 0 4px rgba(136, 68, 0, 0.8),
-               0 0 8px rgba(136, 68, 0, 0.4);
+  text-shadow: 0 0 4px rgba(136, 68, 0, 0.8), 0 0 8px rgba(136, 68, 0, 0.4);
 }
 
 body.light-theme main#content dd {
