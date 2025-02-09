@@ -391,7 +391,7 @@ body.light-theme main#content dt {
 
 body.light-theme main#content dd {
   margin: 0;
-  color: inherit;  /* Uses parent text color instead of amber */
+  color: inherit;
 }
 
 table th,
