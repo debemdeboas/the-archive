@@ -1,58 +1,61 @@
-{{define "title"}}{{.Post.Title}} - Rafa's Archive{{end}}
+{{define "title"}}
+{{.Post.Title}} - Rafa's Archive
+{{end}}
 {{define "content"}}
 <style>
-    .MathJax, .math {
-        opacity: 0;
-        font-size: 1.2em !important;
-        z-index: 0;
-    }
+  .MathJax,
+  .math {
+    opacity: 0;
+    font-size: 1.2em !important;
+    z-index: 0;
+  }
 
-    .mathjax-ready .MathJax, .mathjax-ready .math {
-        opacity: 1;
-    }
+  .mathjax-ready .MathJax,
+  .mathjax-ready .math {
+    opacity: 1;
+  }
 </style>
 
-<div id="post-content" 
-     hx-ext="sse"
-     sse-connect="/sse?post={{.Post.Path}}"
-     sse-disconnect="beforeunload"
-     hx-get="/partials/post?post={{.Post.Path}}"
-     hx-trigger="sse:message"
-     hx-swap="innerHTML transition:true">
+<div
+  id="post-content"
+  hx-ext="sse"
+  sse-connect="/sse?post={{.Post.Path}}"
+  sse-disconnect="beforeunload"
+  hx-get="/partials/post?post={{.Post.Path}}"
+  hx-trigger="sse:message"
+  hx-swap="innerHTML transition:true"
+>
   {{.Post.Content}}
 </div>
 
 <script>
-    if (typeof MathJax !== 'undefined') {
-        MathJax.typesetPromise([document.getElementById('post-content')])
-            .then(() => {
-                document.getElementById('post-content').classList.add('mathjax-ready');
-            });
-    }
-    
-    // Handle HTMX swaps
-    document.body.addEventListener('htmx:beforeSwap', function (evt) {
-        if (evt.detail.target.id === 'post-content') {
-            evt.detail.shouldSwap = false;
-            if (typeof MathJax !== 'undefined') {
-                const temp = document.createElement('div');
-                temp.innerHTML = evt.detail.serverResponse;
-    
-                MathJax.typesetPromise([temp])
-                    .then(() => {
-                        const content = evt.detail.target;
-                        content.classList.remove('mathjax-ready');
-                        content.innerHTML = temp.innerHTML;
-                        requestAnimationFrame(() => {
-                            content.classList.add('mathjax-ready');
-                        });
-                    });
-            }
-        }
-    });
+  document.body.addEventListener("htmx:beforeSwap", function (evt) {
+    if (evt.detail.target.id === "post-content") {
+      evt.detail.shouldSwap = false;
+      if (typeof MathJax !== "undefined" && MathJax.typesetPromise) {
+        const temp = document.createElement("div");
+        temp.innerHTML = evt.detail.serverResponse;
 
-    document.body.addEventListener('htmx:sseError', function (evt) {
-        console.error('SSE error:', evt.detail.error);
-    });
+        MathJax.typesetPromise([temp])
+          .then(() => {
+            const content = evt.detail.target;
+            content.classList.remove("mathjax-ready");
+            content.innerHTML = temp.innerHTML;
+            requestAnimationFrame(() => {
+              content.classList.add("mathjax-ready");
+            });
+          })
+          .catch((err) => {
+            console.error("MathJax error:", err);
+          });
+      } else {
+        evt.detail.target.innerHTML = evt.detail.serverResponse;
+      }
+    }
+  });
+
+  document.body.addEventListener("htmx:sseError", function (evt) {
+    console.error("SSE error:", evt.detail.error);
+  });
 </script>
 {{end}}
