@@ -6,10 +6,49 @@
     <link rel="icon" type="image/svg+xml" href="/static/icons/favicon.svg" />
     <script src="https://unpkg.com/htmx.org@2.0.4"></script>
     <script src="https://unpkg.com/htmx-ext-sse@2.2.2/sse.js"></script>
-    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     <script src="/static/index.js"></script>
+    <script>
+      window.MathJax = {
+        tex: {
+          inlineMath: [
+            ["$", "$"],
+            ["\\(", "\\)"],
+          ],
+          displayMath: [
+            ["$$", "$$"],
+            ["\\[", "\\]"],
+          ],
+        },
+        svg: {
+          scale: 1.2,
+          minScale: 1.2,
+          matchFontHeight: true,
+          mtextInheritFont: true,
+        },
+        startup: {
+          pageReady: () => {
+            return MathJax.startup.defaultPageReady().then(() => {
+              const content = document.getElementById("post-content");
+              if (content) {
+                content.classList.add("mathjax-ready");
+              }
+            });
+          },
+        },
+      };
+    </script>
+    <script
+      id="MathJax-script"
+      async
+      src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"
+    ></script>
     <title>{{template "title" .}}</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    />
     <link rel="stylesheet" href="/static/style.css" />
   </head>
   <body class="{{.Theme}}">
@@ -50,7 +89,6 @@
       {{end}}
     </nav>
     <style id="syntax-highlight">{{.SyntaxCSS}}</style>
-
     <div class="container">
       {{if not $.IsPost }}
       <header>
@@ -63,5 +101,11 @@
       </footer>
     </div>
   </body>
-  <!-- Cloudflare Web Analytics --><script defer src='https://static.cloudflareinsights.com/beacon.min.js' data-cf-beacon='{"token": "3c7facff57df448dae50146bda5b4ef8"}'></script><!-- End Cloudflare Web Analytics -->
+  <!-- Cloudflare Web Analytics -->
+  <script
+    src="https://static.cloudflareinsights.com/beacon.min.js"
+    data-cf-beacon='{"token": "3c7facff57df448dae50146bda5b4ef8"}'
+    defer
+  ></script>
+  <!-- End Cloudflare Web Analytics -->
 </html>
