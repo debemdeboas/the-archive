@@ -11,6 +11,7 @@ import (
 	"github.com/debemdeboas/the-archive/internal/cache"
 	"github.com/debemdeboas/the-archive/internal/model"
 	"github.com/debemdeboas/the-archive/internal/util"
+	"github.com/mmarkdown/mmark/v2/mast"
 )
 
 type FSPostRepository struct { // implements PostRepository
@@ -19,7 +20,7 @@ type FSPostRepository struct { // implements PostRepository
 	postsCache       *cache.Cache[string, *model.Post]
 	postsCacheSorted []model.Post
 
-	reloadNotifier func(model.PostID)
+	reloadNotifier func(model.PostId)
 }
 
 func NewFSPostRepository(postsPath string) *FSPostRepository {
@@ -29,13 +30,13 @@ func NewFSPostRepository(postsPath string) *FSPostRepository {
 	}
 }
 
-func (r *FSPostRepository) SetReloadNotifier(notifier func(model.PostID)) {
+func (r *FSPostRepository) SetReloadNotifier(notifier func(model.PostId)) {
 	r.reloadNotifier = notifier
 }
 
-func (r *FSPostRepository) notifyPostReload(postID model.PostID) {
+func (r *FSPostRepository) notifyPostReload(postId model.PostId) {
 	if r.reloadNotifier != nil {
-		r.reloadNotifier(postID)
+		r.reloadNotifier(postId)
 	}
 }
 
@@ -67,7 +68,7 @@ func (r *FSPostRepository) GetPosts() ([]model.Post, map[string]*model.Post, err
 		if !entry.IsDir() && strings.HasSuffix(entry.Name(), ".md") {
 			name := strings.TrimSuffix(entry.Name(), ".md")
 
-			mdContent, err := r.ReadPost(name)
+			mdContent, err := os.ReadFile(filepath.Join(r.postsPath, name+".md"))
 			if err != nil {
 				return nil, nil, err
 			}
@@ -77,15 +78,24 @@ func (r *FSPostRepository) GetPosts() ([]model.Post, map[string]*model.Post, err
 				return nil, nil, err
 			}
 
+			info := util.GetFrontMatter(mdContent)
+			if info == nil {
+				info = &mast.TitleData{
+					Title: name,
+				}
+			}
+
 			post := model.Post{
+				Id:            model.PostId(util.ContentHashString(name)),
 				Title:         name,
-				Path:          name,
+				Markdown:      mdContent,
 				MDContentHash: util.ContentHash(mdContent),
 				ModifiedDate:  fileInfo.ModTime(),
+				Info:          info,
 			}
 
 			posts = append(posts, post)
-			postsMap[name] = &post
+			postsMap[string(post.Id)] = &post
 		}
 	}
 
@@ -97,7 +107,10 @@ func (r *FSPostRepository) GetPosts() ([]model.Post, map[string]*model.Post, err
 }
 
 func (r *FSPostRepository) ReadPost(path any) ([]byte, error) {
-	return os.ReadFile(filepath.Join(r.postsPath, path.(string)+".md"))
+	if post, ok := r.postsCache.Get(path.(string)); ok && post.Markdown != nil {
+		return post.Markdown, nil
+	}
+	return nil, os.ErrNotExist
 }
 
 func (r *FSPostRepository) ReloadPosts() {
@@ -110,7 +123,7 @@ func (r *FSPostRepository) ReloadPosts() {
 				if newPost, ok := postMap[post.Path]; ok {
 					if newPost.MDContentHash != post.MDContentHash {
 						log.Printf("Reloading post: %s", post.Path)
-						go r.notifyPostReload(model.PostID(post.Path))
+						go r.notifyPostReload(model.PostId(post.Path))
 					}
 				}
 			}

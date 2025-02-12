@@ -82,24 +82,28 @@
         </option>
         {{end}}
       </select>
-      {{if $.IsPost}}
+      {{ if $.IsPost }}
       <div class="navbar-center">
-        <h1><a href="/" id="nav-go-home">Rafa's Archive</a></h1>
+        <h1><a href="/" id="nav-go-home">{{ $.SiteName }}</a></h1>
       </div>
       {{end}}
     </nav>
     <style id="syntax-highlight">{{.SyntaxCSS}}</style>
-    <div class="container">
-      {{if not $.IsPost }}
-      <header>
-        <h1><a href="/">Rafa's Archive</a></h1>
-      </header>
-      {{end}}
+    {{if .IsEditor}}
       <main id="content">{{template "content" .}}</main>
-      <footer>
-        <p>© 2025 debem solutions in technology</p>
-      </footer>
-    </div>
+    {{else}}
+      <div class="container">
+        {{if not $.IsPost }}
+        <header>
+          <h1><a href="/">{{ $.SiteName }}</a></h1>
+        </header>
+        {{end}}
+        <main id="content">{{template "content" .}}</main>
+        <footer>
+          <p>© 2025 debem solutions in technology</p>
+        </footer>
+      </div>
+    {{end}}
   </body>
   <!-- Cloudflare Web Analytics -->
   <script

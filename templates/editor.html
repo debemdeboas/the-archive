@@ -1,5 +1,5 @@
 {{define "title"}}
-{{.Post.Title}} - {{ $.SiteName }}
+Editing "{{.Post.Title}}" - {{ $.SiteName }}
 {{end}}
 {{define "content"}}
 <style>
@@ -16,16 +16,23 @@
   }
 </style>
 
-<div
-  id="post-content"
-  hx-ext="sse"
-  sse-connect="/sse?post={{.Post.Path}}"
-  sse-disconnect="beforeunload"
-  hx-get="/partials/post?post={{.Post.Path}}"
-  hx-trigger="sse:message"
-  hx-swap="innerHTML transition:true"
->
-  {{.Post.Content}}
+<div class="editor-container">
+    <textarea
+        id="editor-content"
+        name="content"
+        hx-post="/partials/post/preview"
+        hx-trigger="keyup changed delay:1ms, load"
+        hx-target="#post-content"
+    >{{.Post.Content}}</textarea>
+    
+    <div
+        id="post-content"
+        hx-ext="sse"
+        sse-connect="/sse?post={{.Post.Path}}"
+        sse-disconnect="beforeunload"
+    >
+        {{.Post.Content}}
+    </div>
 </div>
 
 <script>

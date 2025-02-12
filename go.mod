@@ -10,9 +10,11 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.76.1
 	github.com/gomarkdown/markdown v0.0.0-20250202022148-4f606c78d442
 	github.com/joho/godotenv v1.5.1
+	github.com/mmarkdown/mmark/v2 v2.2.46
 )
 
 require (
+	github.com/BurntSushi/toml v1.4.0 // indirect
 	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.6.8 // indirect
 	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.16.28 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/configsources v1.3.32 // indirect

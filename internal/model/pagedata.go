@@ -10,6 +10,8 @@ import (
 )
 
 type PageData struct {
+	SiteName string
+
 	PageURL string
 
 	Theme string
@@ -17,11 +19,15 @@ type PageData struct {
 	SyntaxCSS    template.CSS
 	SyntaxTheme  string
 	SyntaxThemes []string
+
+	ShowToolbar  *bool
+	IsEditorPage *bool
 }
 
 func NewPageData(r *http.Request) *PageData {
 	syntaxtheme := theme.GetSyntaxThemeFromRequest(r)
 	return &PageData{
+		SiteName:     config.SiteName,
 		PageURL:      r.URL.Path,
 		Theme:        theme.GetThemeFromRequest(r),
 		SyntaxTheme:  syntaxtheme,
@@ -31,5 +37,15 @@ func NewPageData(r *http.Request) *PageData {
 }
 
 func (pd *PageData) IsPost() bool {
-	return strings.HasPrefix(pd.PageURL, config.PostsUrlPath)
+	if pd.ShowToolbar == nil {
+		return strings.HasPrefix(pd.PageURL, config.PostsUrlPath)
+	}
+	return *pd.ShowToolbar
+}
+
+func (pd *PageData) IsEditor() bool {
+	if pd.IsEditorPage == nil {
+		return strings.HasPrefix(pd.PageURL, "/new/post/edit")
+	}
+	return *pd.IsEditorPage
 }

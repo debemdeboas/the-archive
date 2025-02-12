@@ -21,7 +21,7 @@ type S3PostRepository struct { // implements PostRepository
 	postsCache       *cache.Cache[string, *model.Post]
 	postsCacheSorted []model.Post
 
-	reloadNotifier func(model.PostID)
+	reloadNotifier func(model.PostId)
 }
 
 func NewS3PostRepository(accessKeyId, accessKeySecret, baseEndpoint string) *S3PostRepository {
@@ -45,13 +45,13 @@ func NewS3PostRepository(accessKeyId, accessKeySecret, baseEndpoint string) *S3P
 	}
 }
 
-func (r *S3PostRepository) SetReloadNotifier(notifier func(model.PostID)) {
+func (r *S3PostRepository) SetReloadNotifier(notifier func(model.PostId)) {
 	r.reloadNotifier = notifier
 }
 
-func (r *S3PostRepository) notifyPostReload(postID model.PostID) {
+func (r *S3PostRepository) notifyPostReload(postId model.PostId) {
 	if r.reloadNotifier != nil {
-		r.reloadNotifier(postID)
+		r.reloadNotifier(postId)
 	}
 }
 
@@ -127,7 +127,7 @@ func (r *S3PostRepository) ReloadPosts() {
 				if newPost, ok := postMap[post.Path]; ok {
 					if newPost.MDContentHash != post.MDContentHash {
 						log.Printf("Reloading post: %s", post.Path)
-						go r.notifyPostReload(model.PostID(post.Path))
+						go r.notifyPostReload(model.PostId(post.Path))
 					}
 				}
 			}

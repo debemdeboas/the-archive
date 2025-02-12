@@ -12,6 +12,7 @@ import (
 	"sync"
 
 	"github.com/joho/godotenv"
+	"github.com/mmarkdown/mmark/v2/mast"
 
 	"github.com/debemdeboas/the-archive/internal/cache"
 	"github.com/debemdeboas/the-archive/internal/config"
@@ -27,7 +28,7 @@ var content embed.FS
 
 type Client struct {
 	msgChan chan string
-	postID  string
+	postId  string
 }
 
 var (
@@ -53,9 +54,6 @@ func main() {
 	})
 
 	mux := http.NewServeMux()
-
-	mux.Handle(config.StaticUrlPath, http.StripPrefix(config.StaticUrlPath, http.FileServer(http.FS(static))))
-	mux.HandleFunc(config.PostsUrlPath, servePost)
 
 	mux.HandleFunc("/robots.txt", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set(config.HCType, "text/plain")
@@ -88,13 +86,17 @@ func main() {
 			return
 		}
 
-		htmlContent := render.RenderMarkdown(mdContent, theme.GetSyntaxThemeFromRequest(r))
+		htmlContent, _ := render.RenderMarkdown(mdContent, theme.GetSyntaxThemeFromRequest(r))
 
 		w.Header().Set(config.HCType, config.CTypeHTML)
 		w.WriteHeader(http.StatusOK)
 		w.Write(htmlContent)
 	})
 
+	mux.Handle(config.StaticUrlPath, http.StripPrefix(config.StaticUrlPath, http.FileServer(http.FS(static))))
+	mux.HandleFunc(config.PostsUrlPath, servePost)
+	mux.HandleFunc("/new/post/edit", serveNewPostEditor)
+	mux.HandleFunc("/partials/post/preview", serveNewPostPreview)
 	mux.HandleFunc("/theme/toggle", serveThemePostToggle)
 	mux.HandleFunc("/syntax-theme/set", serveSyntaxThemePostSet)
 	mux.HandleFunc("/syntax-theme/{theme}", serveSyntaxThemeGetTheme)
@@ -113,6 +115,46 @@ func main() {
 	})
 
 	log.Fatal(http.ListenAndServe(config.ServerAddr+":"+config.ServerPort, cacheIt(securedMux)))
+}
+
+func serveNewPostEditor(w http.ResponseWriter, r *http.Request) {
+	tmpl, err := template.ParseFS(content, config.TemplatesLocalDir+"/layout.html", config.TemplatesLocalDir+"/editor.html")
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	data := struct {
+		*model.PageData
+		*model.Post
+	}{
+		PageData: model.NewPageData(r),
+		Post:     &model.Post{},
+	}
+	showToolbar := true
+	data.IsEditorPage = &showToolbar
+	data.ShowToolbar = &showToolbar
+
+	w.Header().Set(config.HETag, util.ContentHash([]byte(data.Theme+data.SyntaxTheme)))
+
+	err = tmpl.ExecuteTemplate(w, "layout.html", data)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+func serveNewPostPreview(w http.ResponseWriter, r *http.Request) {
+	content := r.FormValue("content")
+	if content == "" {
+		http.Error(w, "Start typing in the editor to see a preview here.", http.StatusBadRequest)
+		return
+	}
+
+	htmlContent, _ := render.RenderMarkdown([]byte(content), theme.GetSyntaxThemeFromRequest(r))
+
+	w.Header().Set(config.HCType, config.CTypeHTML)
+	w.WriteHeader(http.StatusOK)
+	w.Write(htmlContent)
 }
 
 func cacheIt(h http.HandlerFunc) http.HandlerFunc {
@@ -173,23 +215,34 @@ func serveIndex(w http.ResponseWriter, r *http.Request) {
 }
 
 func servePost(w http.ResponseWriter, r *http.Request) {
-	path := strings.TrimPrefix(r.URL.Path, config.PostsUrlPath)
-	if path == "" {
+	postId := strings.TrimPrefix(r.URL.Path, config.PostsUrlPath)
+	if postId == "" {
 		http.NotFound(w, r)
 		return
 	}
 
-	mdContent, err := postRepository.ReadPost(path)
+	mdContent, err := postRepository.ReadPost(postId)
 	if err != nil {
 		http.NotFound(w, r)
 		return
 	}
 
-	htmlContent := render.RenderMarkdown(mdContent, theme.GetSyntaxThemeFromRequest(r))
+	htmlContent, extra := render.RenderMarkdown(mdContent, theme.GetSyntaxThemeFromRequest(r))
+
+	var title string
+	if info := extra.(*mast.TitleData); info != nil {
+		if info.Title != "" {
+			title = info.Title
+		} else {
+			title = strings.TrimSuffix(postId, filepath.Ext(postId))
+		}
+	}
+
 	post := model.Post{
-		Title:   strings.TrimSuffix(path, filepath.Ext(path)),
-		Path:    path,
+		Title:   title,
+		Path:    postId,
 		Content: template.HTML(htmlContent),
+		Info:    extra.(*mast.TitleData),
 	}
 
 	data := struct {
@@ -278,8 +331,8 @@ func serveSyntaxThemeGetTheme(w http.ResponseWriter, r *http.Request) {
 }
 
 func eventsHandler(w http.ResponseWriter, r *http.Request) {
-	postID := r.URL.Query().Get("post")
-	if postID == "" {
+	postId := r.URL.Query().Get("post")
+	if postId == "" {
 		http.Error(w, "Post parameter required", http.StatusBadRequest)
 		return
 	}
@@ -301,7 +354,7 @@ func eventsHandler(w http.ResponseWriter, r *http.Request) {
 
 	client := &Client{
 		msgChan: make(chan string),
-		postID:  postID,
+		postId:  postId,
 	}
 
 	clientsMu.Lock()
@@ -330,10 +383,10 @@ func eventsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func handleReloadPost(postID model.PostID) {
+func handleReloadPost(postId model.PostId) {
 	clientsMu.Lock()
 	for client := range clients {
-		if client.postID == string(postID) {
+		if client.postId == string(postId) {
 			select {
 			case client.msgChan <- "reload":
 			default:

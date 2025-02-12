@@ -214,6 +214,37 @@ body.light-theme #nav-go-home:hover {
   background-color: var(--bg-color, #181818);
 }
 
+.editor-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+  height: calc(100vh - 4.5rem);
+  margin: 0;
+}
+
+#editor-content,
+#post-content {
+  padding: 2rem;
+  background: var(--bg-color);
+  overflow-y: auto;
+  font-size: 1rem;
+  border: none;
+  color: var(--text-color);
+}
+
+#editor-content {
+  font-family: "TX-02", monospace;
+  resize: none;
+  outline: none;
+  border-right: 1px solid var(--border-color, #f0f0f0);
+}
+
+#post-content p,
+#editor-content {
+  font-size: 1rem;
+  line-height: 1.2;
+}
+
 /* Markdown theme */
 
 /* Classic Computing Theme - Dark variant (Amber) */
@@ -270,7 +301,7 @@ body.dark-theme main#content em {
 body.dark-theme main#content blockquote {
   border-left: 3px solid rgba(255, 176, 0, 0.4);
   margin: 1.5em 0;
-  padding: 0.5em 0 0.5em 1.5em;
+  padding: 0.5em 0.5em 0.5em 1.5em;
   background: rgba(255, 176, 0, 0.05);
   text-shadow: 0 0 4px rgba(255, 176, 0, 0.2);
 }
@@ -293,7 +324,7 @@ body.dark-theme main#content dl {
   margin: 1.5em 0;
   display: grid;
   grid-template-columns: auto 1fr;
-  gap: 0 1em;
+  gap: 0.75em 1em;
   align-items: baseline;
 }
 
@@ -362,7 +393,7 @@ body.light-theme main#content em {
 body.light-theme main#content blockquote {
   border-left: 3px solid rgba(136, 68, 0, 0.3);
   margin: 1.5em 0;
-  padding: 0.5em 0 0.5em 1.5em;
+  padding: 0.5em 0.5em 0.5em 1.5em;
   background: rgba(136, 68, 0, 0.05);
   text-shadow: 0 0 2px rgba(136, 68, 0, 0.1);
 }
@@ -385,7 +416,7 @@ body.light-theme main#content dl {
   margin: 1.5em 0;
   display: grid;
   grid-template-columns: auto 1fr;
-  gap: 0 1em;
+  gap: 0.75em 1em;
   align-items: baseline;
 }
 
@@ -441,4 +472,58 @@ tbody:first-child tr:first-child td:first-child {
 thead:last-child tr:last-child th:first-child,
 tbody:last-child tr:last-child td:first-child {
   border-radius: 0 0 0 4px;
+}
+
+/* Dark theme callouts */
+body.dark-theme main#content span.callout {
+  font-style: normal !important; /* Clear italic */
+  font-weight: normal !important; /* Clear bold */
+  text-decoration: none !important; /* Clear underline */
+  white-space: normal !important; /* Clear any pre formatting */
+  display: inline-block;
+  padding: 0.2em 0.5em;
+  margin: 0 0.2em;
+  background: rgba(255, 176, 0, 0.1);
+  border: 1px solid rgba(255, 176, 0, 0.3);
+  border-radius: 3px;
+  color: #ffb000;
+  text-shadow: 0 0 4px rgba(255, 176, 0, 0.4);
+}
+
+/* Light theme callouts */
+body.light-theme main#content span.callout {
+  font-style: normal !important; /* Clear italic */
+  font-weight: normal !important; /* Clear bold */
+  text-decoration: none !important; /* Clear underline */
+  white-space: normal !important; /* Clear any pre formatting */
+  display: inline-block;
+  padding: 0.2em 0.5em;
+  margin: 0 0.2em;
+  background: rgba(136, 68, 0, 0.08);
+  border: 1px solid rgba(136, 68, 0, 0.2);
+  border-radius: 3px;
+  color: #884400;
+  text-shadow: 0 0 2px rgba(136, 68, 0, 0.4), 0 0 4px rgba(136, 68, 0, 0.2);
+}
+
+/* Dark theme figcaption */
+body.dark-theme main#content figcaption {
+  font-size: 0.9em;
+  color: rgba(255, 176, 0, 0.8);
+  text-align: center;
+  margin-top: 0;
+  margin-bottom: 1.5rem;
+  font-style: italic;
+  text-shadow: 0 0 3px rgba(255, 176, 0, 0.3);
+}
+
+/* Light theme figcaption */
+body.light-theme main#content figcaption {
+  font-size: 0.9em;
+  color: rgba(136, 68, 0, 0.8);
+  text-align: center;
+  margin-top: 0;
+  margin-bottom: 1.5rem;
+  font-style: italic;
+  text-shadow: 0 0 2px rgba(136, 68, 0, 0.2);
 }

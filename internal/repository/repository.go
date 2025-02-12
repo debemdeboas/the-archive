@@ -10,5 +10,5 @@ type PostRepository interface {
 	ReloadPosts()
 
 	// SetReloadNotifier sets a function that will be called when the posts are reloaded.
-	SetReloadNotifier(notifier func(model.PostID))
+	SetReloadNotifier(notifier func(model.PostId))
 }
