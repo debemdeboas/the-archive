@@ -7,6 +7,8 @@ type DraftId model.PostId
 type Draft struct {
 	Id      DraftId
 	Content []byte
+
+	Initialized bool
 }
 
 type Repository interface {

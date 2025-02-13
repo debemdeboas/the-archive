@@ -123,14 +123,14 @@ func main() {
 
 func midWithDraftSaving(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		draftID := r.FormValue("draft-id")
-		if draftID == "" {
+		draftId := r.FormValue("draft-id")
+		if draftId == "" {
 			next.ServeHTTP(w, r)
 			return
 		}
 
 		content := r.FormValue("content")
-		if err := editorRepo.SaveDraft(editor.DraftId(draftID), []byte(content)); err != nil {
+		if err := editorRepo.SaveDraft(editor.DraftId(draftId), []byte(content)); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -142,8 +142,7 @@ func midWithDraftSaving(next http.HandlerFunc) http.HandlerFunc {
 func serveNewPostPreview(w http.ResponseWriter, r *http.Request) {
 	content := r.FormValue("content")
 	if content == "" {
-		http.Error(w, "Start typing in the editor to see a preview here.", http.StatusBadRequest)
-		return
+		content = "Start typing in the editor to see a preview here."
 	}
 
 	htmlContent, _ := render.RenderMarkdown([]byte(content), theme.GetSyntaxThemeFromRequest(r))
