@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"path/filepath"
 	"strings"
-	"sync"
 
 	"github.com/joho/godotenv"
 	"github.com/mmarkdown/mmark/v2/mast"
@@ -19,6 +18,8 @@ import (
 	"github.com/debemdeboas/the-archive/internal/model"
 	"github.com/debemdeboas/the-archive/internal/render"
 	"github.com/debemdeboas/the-archive/internal/repository"
+	"github.com/debemdeboas/the-archive/internal/repository/editor"
+	"github.com/debemdeboas/the-archive/internal/sse"
 	"github.com/debemdeboas/the-archive/internal/theme"
 	"github.com/debemdeboas/the-archive/internal/util"
 )
@@ -26,17 +27,12 @@ import (
 //go:embed static/* templates/*
 var content embed.FS
 
-type Client struct {
-	msgChan chan string
-	postId  string
-}
-
-var (
-	clientsMu sync.Mutex
-	clients   = make(map[*Client]bool)
-)
+var clients = sse.NewSSEClients()
 
 var postRepository repository.PostRepository = repository.NewFSPostRepository(config.PostsLocalDir)
+
+var editorRepo editor.Repository = editor.NewMemoryRepository()
+var editorHandler = editor.NewHandler(editorRepo, clients, content)
 
 func main() {
 	err := godotenv.Load()
@@ -95,8 +91,16 @@ func main() {
 
 	mux.Handle(config.StaticUrlPath, http.StripPrefix(config.StaticUrlPath, http.FileServer(http.FS(static))))
 	mux.HandleFunc(config.PostsUrlPath, servePost)
-	mux.HandleFunc("/new/post/edit", serveNewPostEditor)
-	mux.HandleFunc("/partials/post/preview", serveNewPostPreview)
+	mux.HandleFunc("/new/post", func(w http.ResponseWriter, r *http.Request) {
+		http.SetCookie(w, &http.Cookie{
+			Name:  config.CookieDraftId,
+			Value: "",
+			Path:  "/",
+		})
+		http.Redirect(w, r, "/new/post/edit", http.StatusFound)
+	})
+	mux.HandleFunc("/new/post/edit", editorHandler.ServeNewPostEditor)
+	mux.HandleFunc("/partials/post/preview", midWithDraftSaving(serveNewPostPreview))
 	mux.HandleFunc("/theme/toggle", serveThemePostToggle)
 	mux.HandleFunc("/syntax-theme/set", serveSyntaxThemePostSet)
 	mux.HandleFunc("/syntax-theme/{theme}", serveSyntaxThemeGetTheme)
@@ -117,29 +121,21 @@ func main() {
 	log.Fatal(http.ListenAndServe(config.ServerAddr+":"+config.ServerPort, cacheIt(securedMux)))
 }
 
-func serveNewPostEditor(w http.ResponseWriter, r *http.Request) {
-	tmpl, err := template.ParseFS(content, config.TemplatesLocalDir+"/layout.html", config.TemplatesLocalDir+"/editor.html")
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+func midWithDraftSaving(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		draftID := r.FormValue("draft-id")
+		if draftID == "" {
+			next.ServeHTTP(w, r)
+			return
+		}
 
-	data := struct {
-		*model.PageData
-		*model.Post
-	}{
-		PageData: model.NewPageData(r),
-		Post:     &model.Post{},
-	}
-	showToolbar := true
-	data.IsEditorPage = &showToolbar
-	data.ShowToolbar = &showToolbar
+		content := r.FormValue("content")
+		if err := editorRepo.SaveDraft(editor.DraftId(draftID), []byte(content)); err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
 
-	w.Header().Set(config.HETag, util.ContentHash([]byte(data.Theme+data.SyntaxTheme)))
-
-	err = tmpl.ExecuteTemplate(w, "layout.html", data)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		next.ServeHTTP(w, r)
 	}
 }
 
@@ -190,7 +186,7 @@ func secureHeaders(h http.HandlerFunc) http.HandlerFunc {
 func serveIndex(w http.ResponseWriter, r *http.Request) {
 	posts := postRepository.GetPostList()
 
-	tmpl, err := template.ParseFS(content, config.TemplatesLocalDir+"/layout.html", config.TemplatesLocalDir+"/index.html")
+	tmpl, err := template.ParseFS(content, config.TemplatesLocalDir+"/"+config.TemplateLayout, config.TemplatesLocalDir+"/"+config.TemplateIndex)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -208,7 +204,7 @@ func serveIndex(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set(config.HETag, util.ContentHash([]byte(data.Theme+data.SyntaxTheme)))
 
-	err = tmpl.ExecuteTemplate(w, "layout.html", data)
+	err = tmpl.ExecuteTemplate(w, config.TemplateLayout, data)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
@@ -253,7 +249,7 @@ func servePost(w http.ResponseWriter, r *http.Request) {
 		Post:     &post,
 	}
 
-	tmpl, err := template.ParseFS(content, config.TemplatesLocalDir+"/layout.html", config.TemplatesLocalDir+"/post.html")
+	tmpl, err := template.ParseFS(content, config.TemplatesLocalDir+"/"+config.TemplateLayout, config.TemplatesLocalDir+"/"+config.TemplatePost)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -352,29 +348,24 @@ func eventsHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "event: connected\ndata: SSE connection established\n\n")
 	flusher.Flush()
 
-	client := &Client{
-		msgChan: make(chan string),
-		postId:  postId,
+	client := &sse.Client{
+		Msg:    make(chan string),
+		PostId: model.PostId(postId),
 	}
 
-	clientsMu.Lock()
-	clients[client] = true
-	clientsMu.Unlock()
+	clients.Add(client)
 
 	log.Printf("New SSE client connected")
 
 	defer func() {
-		clientsMu.Lock()
-		delete(clients, client)
-		close(client.msgChan)
-		clientsMu.Unlock()
+		clients.Delete(client)
 		log.Printf("SSE client disconnected")
 	}()
 
 	notify := r.Context().Done()
 	for {
 		select {
-		case msg := <-client.msgChan:
+		case msg := <-client.Msg:
 			fmt.Fprintf(w, "data: %s\n\n", msg)
 			flusher.Flush()
 		case <-notify:
@@ -384,14 +375,5 @@ func eventsHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func handleReloadPost(postId model.PostId) {
-	clientsMu.Lock()
-	for client := range clients {
-		if client.postId == string(postId) {
-			select {
-			case client.msgChan <- "reload":
-			default:
-			}
-		}
-	}
-	clientsMu.Unlock()
+	go clients.Broadcast(postId, "reload")
 }

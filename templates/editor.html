@@ -23,16 +23,15 @@ Editing "{{.Post.Title}}" - {{ $.SiteName }}
         hx-post="/partials/post/preview"
         hx-trigger="keyup changed delay:1ms, load"
         hx-target="#post-content"
-    >{{.Post.Content}}</textarea>
-    
+        hx-vals='{"draft-id": "{{.Post.Id}}"}'
+    >{{.Post.Markdown | printf "%s"}}</textarea>
+
     <div
         id="post-content"
         hx-ext="sse"
-        sse-connect="/sse?post={{.Post.Path}}"
+        sse-connect="/sse?post={{.Post.Id}}"
         sse-disconnect="beforeunload"
-    >
-        {{.Post.Content}}
-    </div>
+    >Start typing in the editor to see a preview here.</div>
 </div>
 
 <script>
@@ -59,10 +58,6 @@ Editing "{{.Post.Title}}" - {{ $.SiteName }}
         evt.detail.target.innerHTML = evt.detail.serverResponse;
       }
     }
-  });
-
-  document.body.addEventListener("htmx:sseError", function (evt) {
-    console.error("SSE error:", evt.detail.error);
   });
 </script>
 {{end}}

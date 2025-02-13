@@ -10,4 +10,9 @@ const (
 	PostsUrlPath  = "/" + PostsLocalDir + "/"
 
 	TemplatesLocalDir = "templates"
+
+	TemplateLayout = "layout.html"
+	TemplateIndex  = "index.html"
+	TemplatePost   = "post.html"
+	TemplateEditor = "editor.html"
 )

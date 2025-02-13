@@ -120,10 +120,10 @@ func (r *FSPostRepository) ReloadPosts() {
 			log.Println("Error reloading posts:", err)
 		} else {
 			for _, post := range r.postsCacheSorted {
-				if newPost, ok := postMap[post.Path]; ok {
+				if newPost, ok := postMap[string(post.Id)]; ok {
 					if newPost.MDContentHash != post.MDContentHash {
-						log.Printf("Reloading post: %s", post.Path)
-						go r.notifyPostReload(model.PostId(post.Path))
+						log.Printf("Reloading post: [%s] %s", post.Id, post.Title)
+						go r.notifyPostReload(post.Id)
 					}
 				}
 			}
@@ -131,6 +131,6 @@ func (r *FSPostRepository) ReloadPosts() {
 			r.postsCacheSorted = posts
 			r.postsCache.SetTo(postMap)
 		}
-		time.Sleep(5 * time.Second)
+		time.Sleep(1 * time.Second)
 	}
 }

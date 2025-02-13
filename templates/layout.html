@@ -50,38 +50,55 @@
       referrerpolicy="no-referrer"
     />
     <link rel="stylesheet" href="/static/style.css" />
+    <link rel="stylesheet" href="/static/markdown.css" />
   </head>
   <body class="{{.Theme}}">
     <nav class="navbar">
-      <button
-        hx-post="/theme/toggle"
-        hx-swap="innerHTML"
-        hx-target=".theme-icon"
-        hx-trigger="click"
-        class="theme-toggle"
-      >
-        <span
-          class="theme-icon"
-          hx-get="/theme/opposite-icon"
-          hx-trigger="load"
-          hx-vals='js:{"theme": getCurrentTheme()}'
+      {{if .IsEditor}}
+      <div class="title-wrapper" data-tooltip="Delete the current draft and start fresh">
+        <button onclick="window.location.href='/new/post'">
+          <i class="fas fa-refresh"></i>
+        </button>
+      </div>
+      {{else}}
+      <div class="title-wrapper" data-tooltip="Create a new draft">
+        <button onclick="window.location.href='/new/post'">
+          <i class="fas fa-plus"></i>
+        </button>
+      </div>
+      {{end}}
+      <div class="title-wrapper" data-tooltip="Toggle dark/light theme">
+        <button
+          hx-post="/theme/toggle"
+          hx-swap="innerHTML"
+          hx-target=".theme-icon"
+          hx-trigger="click"
+          class="theme-toggle"
         >
-        </span>
-      </button>
-      <select
-        hx-post="/syntax-theme/set"
-        hx-trigger="change"
-        hx-swap="innerHTML"
-        hx-target="#syntax-highlight"
-        class="syntax-theme-select"
-        name="syntax-theme-select"
-      >
-        {{range .SyntaxThemes}}
-        <option value="{{.}}" {{ if eq . $.SyntaxTheme }}selected{{ end }}>
-          {{.}}
-        </option>
-        {{end}}
-      </select>
+          <span
+            class="theme-icon"
+            hx-get="/theme/opposite-icon"
+            hx-trigger="load"
+            hx-vals='js:{"theme": getCurrentTheme()}'
+          ></span>
+        </button>
+      </div>
+      <div class="title-wrapper" data-tooltip="Select a syntax highlighting theme">
+        <select
+          hx-post="/syntax-theme/set"
+          hx-trigger="change"
+          hx-swap="innerHTML"
+          hx-target="#syntax-highlight"
+          class="syntax-theme-select"
+          name="syntax-theme-select"
+        >
+          {{range .SyntaxThemes}}
+          <option value="{{.}}" {{ if eq . $.SyntaxTheme }}selected{{ end }}>
+            {{.}}
+          </option>
+          {{end}}
+        </select>
+      </div>
       {{ if $.IsPost }}
       <div class="navbar-center">
         <h1><a href="/" id="nav-go-home">{{ $.SiteName }}</a></h1>

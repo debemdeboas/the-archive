@@ -117,8 +117,6 @@ func RenderMarkdownMmark(md []byte, highlightTheme string) ([]byte, *mast.TitleD
 
 	mparser.AddIndex(doc)
 
-	fmt.Println("info", info)
-
 	// There's a possibility that info.Language is a nil pointer
 	// so we need to check for that before passing it to the lang.New function
 	if info == nil {

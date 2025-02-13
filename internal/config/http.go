@@ -16,4 +16,5 @@ const (
 const (
 	CookieTheme       = "theme"
 	CookieSyntaxTheme = "syntax-theme"
+	CookieDraftId     = "draft-id"
 )
