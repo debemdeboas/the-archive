@@ -69,8 +69,8 @@ body {
 .container {
   width: 85%;
   max-width: 1200px;
-  margin: 20px auto; 
-  padding: 20px; 
+  margin: 0 auto;
+  padding: 20px;
 }
 
 header {
@@ -144,27 +144,89 @@ body.light-theme #nav-go-home:hover {
 .navbar {
   display: flex;
   align-items: center;
-  padding: 1rem;
   background-color: rgba(0, 0, 0, 0.1);
   backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--border-color, #3d3d3d);
-  justify-content: flex-end;
   position: sticky;
-  top: 0px;
+  top: 0;
   z-index: 1000;
+  width: 100%;
+  justify-content: space-evenly;
+  padding: 0.5rem 0;
+  height: auto;
+}
+
+nav.navbar h1 {
+  line-height: 0.5rem;
+  font-size: 1.5rem;
+}
+
+.navbar-left,
+.navbar-center,
+.navbar-right {
+  flex: 1;
+  display: flex;
+}
+
+.navbar-left,
+.navbar-right {
+  flex-basis: 0;
+  flex-grow: 1;
 }
 
 .navbar-center {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
+  flex-basis: 0;
+  flex-grow: 2;
+
+  text-align: center;
+  justify-content: center;
+}
+
+.navbar-left {
+  text-align: left;
+  justify-content: start;
+  padding-left: 0.5rem;
+}
+
+.navbar-right {
+  text-align: right;
+  justify-content: end;
+  padding-right: 0.5rem;
 }
 
 @media (max-width: 768px) {
-  .navbar-center {
-    font-size: 13px;
-    width: 40px;
-    left: 28%;
+  :root {
+    --font-size: 14px;
+  }
+
+  .container {
+    width: 95%;
+    max-width: 1200px;
+    margin: 0;
+    padding: 0.25rem;
+  }
+
+  #editor-content,
+  #post-content {
+    padding: 0.25rem;
+    background: var(--bg-color);
+    overflow-y: auto;
+    font-size: 1rem;
+    border: none;
+    color: var(--text-color);
+  }
+
+  .navbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .navbar-left,
+  .navbar-center,
+  .navbar-right {
+    flex: 1;
+    justify-content: center;
+    padding: 0;
   }
 }
 
@@ -325,7 +387,6 @@ body div.title-wrapper:last-child[data-tooltip]:hover::after {
   width: auto;
 }
 
-/* Add these for better responsiveness */
 @media (max-width: 768px) {
   body div.title-wrapper:last-child[data-tooltip]:hover::after {
     max-width: 6em;
