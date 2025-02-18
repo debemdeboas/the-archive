@@ -58,9 +58,7 @@
       <div class="navbar-left">
       </div>
       <div class="navbar-center">
-        {{ if $.IsPost }}
         <h1><a href="/" id="nav-go-home">{{ $.SiteName }}</a></h1>
-        {{end}}
       </div>
       <div class="navbar-right">
         {{if .IsEditor}}
@@ -117,7 +115,7 @@
       <div class="container">
         {{if not $.IsPost }}
         <header>
-          <h1><a href="/">{{ $.SiteName }}</a></h1>
+          <h1><a href="/">Welcome to {{ $.SiteName }}</a></h1>
         </header>
         {{end}}
         <main id="content">{{template "content" .}}</main>
