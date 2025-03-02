@@ -1,0 +1,138 @@
+body {
+  margin: 0;
+  padding: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background: var(--bg-color);
+  font-family: "TX-02", monospace;
+  color: var(--text-color);
+}
+
+.auth-container {
+  width: 85%;
+  max-width: 600px;
+  padding: 2rem;
+  background: var(--bg-color-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 5px;
+  box-shadow: 0 0 8px var(--shadow-color);
+}
+
+h1 {
+  font-size: 1.5rem;
+  color: var(--primary-color);
+  text-shadow: 0 0 4px var(--shadow-color);
+  margin-bottom: 0.5rem;
+}
+
+p {
+  color: var(--text-color-muted);
+  margin-bottom: 1.5rem;
+  font-size: 0.9rem;
+}
+
+.auth-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+h3 {
+  font-size: 1rem;
+  color: var(--text-color);
+  margin-bottom: 0.5rem;
+}
+
+.challenge-container {
+  background: var(--bg-color-tertiary);
+  padding: 1rem;
+  border-radius: 5px;
+  word-break: break-all;
+  font-size: 0.9rem;
+  color: var(--text-color);
+  border: 1px solid var(--border-color);
+}
+
+small {
+  color: var(--text-color-muted);
+  font-size: 0.8rem;
+  margin-top: 0.3rem;
+  display: block;
+}
+
+.signature-input {
+  width: 100%;
+  padding: 0.75rem;
+  background: var(--bg-color-tertiary);
+  border: 1px solid var(--border-color);
+  border-radius: 5px;
+  color: var(--text-color);
+  font-family: "TX-02", monospace;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+  box-shadow: 0 0 4px var(--shadow-color);
+  box-sizing: border-box;
+}
+
+.signature-input:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 8px var(--shadow-color-strong);
+  outline: none;
+}
+
+.button-group {
+  display: flex;
+  gap: 1rem;
+}
+
+button {
+  padding: 0.75rem 1.5rem;
+  background: transparent;
+  border: 1px solid var(--border-color);
+  border-radius: 5px;
+  color: var(--text-color);
+  font-family: "TX-02", monospace;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 0 4px var(--shadow-color);
+}
+
+#authenticate {
+  background: var(--primary-color);
+  color: var(--bg-color);
+}
+
+#authenticate:hover {
+  background: var(--primary-hover);
+  box-shadow: 0 0 8px var(--shadow-color-strong);
+}
+
+#refreshChallenge:hover {
+  background: var(--hover-overlay-medium);
+  border-color: var(--primary-color);
+  box-shadow: 0 0 8px var(--shadow-color-strong);
+}
+
+.status {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  border-radius: 5px;
+  font-size: 0.9rem;
+  border: 1px solid var(--border-color);
+  display: none;
+}
+
+.status.error {
+  background: rgba(255, 68, 68, 0.1);
+  color: var(--danger-color);
+  border-color: rgba(255, 68, 68, 0.3);
+}
+
+.status.success {
+  background: rgba(68, 255, 68, 0.1);
+  color: var(--success-color);
+  border-color: rgba(68, 255, 68, 0.3);
+}

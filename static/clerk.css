@@ -1,0 +1,303 @@
+
+/* Root styles */
+.cl-rootBox {
+    font-family: 'TX-02', monospace;
+    font-size: 0.8rem;
+}
+
+/* Card styles */
+.cl-card {
+    background-color: var(--bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+    box-shadow: 0 0 4px var(--shadow-color);
+}
+
+/* Button styles */
+.cl-formButtonPrimary {
+    display: inline-flex;
+    height: 2.25rem;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+    border-radius: 5px;
+    padding: 0 0.75rem;
+    font-family: 'TX-02', monospace;
+    font-weight: 500;
+    background-color: var(--primary-color);
+    color: var(--bg-color);
+    border: none;
+    box-shadow: 0 0 4px var(--shadow-color);
+    transition: all 0.2s ease;
+}
+
+.cl-formButtonPrimary:hover {
+    background-color: var(--primary-hover);
+    box-shadow: 0 0 8px var(--shadow-color-strong);
+}
+
+/* Input fields */
+.cl-formFieldInput[type='text'],
+.cl-formFieldInput[type='email'],
+.cl-formFieldInput[type='password'] {
+    height: 2.5rem;
+    width: 100%;
+    border-radius: 5px;
+    border: 1px solid var(--border-color);
+    background-color: var(--bg-color-secondary);
+    padding: 0.5rem 0.75rem;
+    color: var(--text-color);
+    font-family: 'TX-02', monospace;
+    transition: all 0.2s ease;
+}
+
+.cl-formFieldInput:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 4px var(--shadow-color);
+    outline: none;
+}
+
+/* Text elements */
+.cl-headerTitle,
+.cl-socialButtonsBlockButtonText,
+.cl-loading,
+.cl-formFieldLabel,
+.cl-formHeaderTitle,
+.cl-selectButton__countryCode,
+.cl-selectButton__countryCode p,
+.cl-selectOption p,
+.cl-selectOption div,
+.cl-modalCloseButton,
+.cl-navbarButton,
+.cl-breadcrumbsItem.cl-breadcrumbsItem__currentPage,
+.cl-profileSectionTitle p,
+.cl-userPreviewTextContainer,
+.cl-profileSectionContent p,
+.cl-form p,
+.cl-accordionTriggerButton {
+    color: var(--text-color);
+}
+
+/* Muted text */
+.cl-headerSubtitle,
+.cl-dividerText,
+.cl-footerActionText,
+.cl-alertText,
+.cl-formFieldInfoText,
+.cl-formFieldSuccessText,
+.cl-identityPreviewText,
+.cl-userButtonPopoverActionButton,
+.cl-userButtonPopoverActionButtonText,
+.cl-userButtonPopoverFooter p,
+.cl-userButtonPopoverFooter a,
+.cl-formHeaderSubtitle,
+.cl-breadcrumbsItem,
+.cl-breadcrumbsItemDivider {
+    color: var(--text-color-muted);
+}
+
+/* Social buttons */
+.cl-socialButtonsBlockButton {
+    height: 2.5rem;
+    border: 1px solid var(--border-color);
+    background-color: var(--bg-color-secondary);
+    border-radius: 5px;
+    transition: all 0.2s ease;
+}
+
+.cl-socialButtonsBlockButton:hover {
+    background-color: var(--hover-overlay-medium);
+    border-color: var(--primary-color);
+}
+
+/* Footer */
+.cl-footer {
+    border-top: 1px solid var(--border-color);
+    background-color: var(--bg-color-secondary);
+    padding: 1rem;
+    border-radius: 0 0 5px 5px;
+}
+
+.cl-footerActionLink {
+    color: var(--primary-color);
+    text-decoration: none;
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+.cl-footerActionLink:hover {
+    color: var(--primary-hover);
+    text-shadow: 0 0 8px var(--shadow-color);
+}
+
+.cl-footerActionLink::after {
+    content: '';
+    position: absolute;
+    width: 0;
+    height: 1px;
+    bottom: -2px;
+    left: 0;
+    background-color: var(--primary-color);
+    transition: width 0.2s ease;
+}
+
+.cl-footerActionLink:hover::after {
+    width: 100%;
+}
+
+/* Alternative methods */
+.cl-alternativeMethods .cl-alternativeMethodsBlockButton {
+    height: 2.5rem;
+    background-color: var(--bg-color-secondary);
+    border: 1px solid var(--border-color);
+    color: var(--text-color);
+    transition: all 0.2s ease;
+}
+
+.cl-alternativeMethods .cl-alternativeMethodsBlockButton:hover {
+    background-color: var(--hover-overlay-medium);
+    border-color: var(--primary-color);
+}
+
+/* User button and popover */
+.cl-userButtonPopoverCard {
+    background-color: var(--bg-color);
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+    box-shadow: 0 0 4px var(--shadow-color);
+}
+
+.cl-userButtonPopoverActionButton {
+    transition: all 0.2s ease;
+}
+
+.cl-userButtonPopoverActionButton:hover {
+    background-color: var(--hover-overlay-medium);
+}
+
+/* Badges */
+.cl-badge {
+    border-radius: 9999px;
+    border: 1px solid var(--border-color);
+    background-color: var(--bg-color-secondary);
+    padding: 0.125rem 0.625rem;
+    font-size: 0.75rem;
+    color: var(--text-color);
+}
+
+.cl-badge[data-localization-key='badge__unverified'] {
+    color: var(--danger-color);
+    border-color: var(--danger-color);
+}
+
+/* Navigation */
+.cl-navbar {
+    background-color: var(--bg-color-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 5px;
+}
+
+.cl-navbarButton {
+    transition: all 0.2s ease;
+}
+
+.cl-navbarButton:hover {
+    background-color: var(--hover-overlay-medium);
+}
+
+/* Profile sections */
+.cl-profileSection__profile,
+.cl-profileSection__emailAddresses {
+    border-bottom: 1px solid var(--border-color);
+    padding: 1rem 0;
+}
+
+.cl-profileSectionPrimaryButton {
+    background-color: var(--bg-color);
+    color: var(--text-color);
+}
+
+/* Danger zone */
+button[data-localization-key='userProfile.start.dangerSection.deleteAccountButton'] {
+    background-color: var(--danger-color);
+    color: var(--bg-color);
+}
+
+/* Reset button */
+.cl-formButtonReset {
+    color: var(--text-color);
+    transition: all 0.2s ease;
+}
+
+.cl-formButtonReset:hover {
+    background-color: var(--hover-overlay-medium);
+}
+
+/* Phone input */
+.cl-phoneInputBox {
+    background-color: var(--bg-color-secondary);
+    border: 1px solid var(--border-color);
+}
+
+/* Select options */
+.cl-selectOptionsContainer__countryCode {
+    background-color: var(--bg-color-secondary);
+    border: 1px solid var(--border-color);
+}
+
+/* File upload */
+.cl-fileDropAreaBox {
+    background-color: var(--bg-color-secondary);
+}
+
+.cl-fileDropAreaIconBox {
+    background-color: var(--bg-color-tertiary);
+}
+
+.cl-fileDropAreaIcon {
+    color: var(--text-color-muted);
+}
+
+/* User button specific */
+.cl-userButtonTrigger {
+    transition: all 0.2s ease;
+}
+
+.cl-userButtonTrigger:hover {
+    background-color: var(--hover-overlay-medium);
+}
+
+/* Menu items */
+.cl-menuItem {
+    transition: all 0.2s ease;
+}
+
+.cl-menuItem:hover {
+    background-color: var(--hover-overlay-medium);
+}
+
+/* Divider */
+.cl-dividerLine {
+    background-color: var(--border-color);
+}
+
+/* OTP input */
+.cl-otpCodeFieldInput {
+    border: 1px solid var(--border-color) !important;
+    color: var(--text-color) !important;
+    background-color: var(--bg-color-secondary) !important;
+}
+
+/* Search input */
+.cl-selectSearchInput__countryCode {
+    background-color: var(--bg-color-secondary);
+    border: 1px solid var(--border-color);
+    color: var(--text-color);
+}
+
+/* Custom */
+
+.cl-card,
+.cl-scrollBox {
+    background: var(--bg-color-secondary);
+}
