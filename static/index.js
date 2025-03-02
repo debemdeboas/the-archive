@@ -47,26 +47,18 @@ window.onload = async () => {
     });
 
     document.body.addEventListener("htmx:afterSwap", function (evt) {
-        console.log("0", evt)
-
-        if (evt.detail.target.id === "post-content") {
-
-            console.log("1")
-
-            if (typeof MathJax !== "undefined" && MathJax.typesetPromise) {
-                console.log("2")
-                const content = evt.detail.target;
-                MathJax.typesetPromise([content])
-                    .then(() => {
-                        content.classList.remove("mathjax-ready");
-                        requestAnimationFrame(() => {
-                            content.classList.add("mathjax-ready");
-                        });
-                    })
-                    .catch((err) => {
-                        console.error("MathJax error:", err);
+        if (typeof MathJax !== "undefined" && MathJax.typesetPromise) {
+            const content = evt.detail.target;
+            MathJax.typesetPromise([content])
+                .then(() => {
+                    content.classList.remove("mathjax-ready");
+                    requestAnimationFrame(() => {
+                        content.classList.add("mathjax-ready");
                     });
-            }
+                })
+                .catch((err) => {
+                    console.error("MathJax error:", err);
+                });
         }
     });
 
