@@ -106,9 +106,9 @@ func (r *FSPostRepository) GetPosts() ([]model.Post, map[string]*model.Post, err
 	return posts, postsMap, nil
 }
 
-func (r *FSPostRepository) ReadPost(path any) ([]byte, error) {
-	if post, ok := r.postsCache.Get(path.(string)); ok && post.Markdown != nil {
-		return post.Markdown, nil
+func (r *FSPostRepository) ReadPost(id any) (*model.Post, error) {
+	if post, ok := r.postsCache.Get(id.(string)); ok && post.Markdown != nil {
+		return post, nil
 	}
 	return nil, os.ErrNotExist
 }
@@ -133,4 +133,16 @@ func (r *FSPostRepository) ReloadPosts() {
 		}
 		time.Sleep(1 * time.Second)
 	}
+}
+
+func (r *FSPostRepository) NewPost() *model.Post {
+	return &model.Post{}
+}
+
+func (r *FSPostRepository) SetPostContent(post *model.Post) error {
+	return nil
+}
+
+func (r *FSPostRepository) SavePost(post *model.Post) error {
+	return nil
 }

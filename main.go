@@ -7,14 +7,17 @@ import (
 	"io/fs"
 	"log"
 	"net/http"
-	"path/filepath"
+	"net/url"
+	"os"
 	"strings"
 
 	"github.com/joho/godotenv"
 	"github.com/mmarkdown/mmark/v2/mast"
 
+	"github.com/debemdeboas/the-archive/internal/auth"
 	"github.com/debemdeboas/the-archive/internal/cache"
 	"github.com/debemdeboas/the-archive/internal/config"
+	"github.com/debemdeboas/the-archive/internal/db"
 	"github.com/debemdeboas/the-archive/internal/model"
 	"github.com/debemdeboas/the-archive/internal/render"
 	"github.com/debemdeboas/the-archive/internal/repository"
@@ -27,12 +30,18 @@ import (
 //go:embed static/* templates/*
 var content embed.FS
 
+var Db db.Db = db.NewSQLite()
+
 var clients = sse.NewSSEClients()
 
-var postRepository repository.PostRepository = repository.NewFSPostRepository(config.PostsLocalDir)
+var dbPostRepository repository.PostRepository = repository.NewDbPostRepository(Db)
+var postRepository repository.PostRepository = repository.NewDbPostRepository(Db)
 
 var editorRepo editor.Repository = editor.NewMemoryRepository()
-var editorHandler = editor.NewHandler(editorRepo, clients, content)
+var editorHandler = editor.NewHandler(editorRepo, clients, &content)
+
+var clerkAuthProvider auth.AuthProvider
+var ed25519AuthProvider auth.AuthProvider
 
 func main() {
 	err := godotenv.Load()
@@ -40,7 +49,20 @@ func main() {
 		log.Println("Error loading .env file")
 	}
 
-	// Calculate the hash of static content to use as a cache buster
+	Db.InitDb()
+
+	clerkAuthProvider = auth.NewClerkAuthProvider(os.Getenv("CLERK_API"))
+
+	ed25519AuthProvider, err = auth.NewEd25519AuthProvider(
+		os.Getenv("ED25519_PUBKEY"),
+		"Authorization",
+		model.UserId("admin"),
+	)
+	if err != nil {
+		log.Println(err)
+	}
+
+	// Calculate the hash of static content
 	static, _ := fs.Sub(content, config.StaticLocalDir)
 	fs.WalkDir(static, ".", func(path string, d fs.DirEntry, err error) error {
 		if !d.IsDir() {
@@ -76,17 +98,19 @@ func main() {
 			return
 		}
 
-		mdContent, err := postRepository.ReadPost(path)
+		post, err := postRepository.ReadPost(path)
 		if err != nil {
 			http.NotFound(w, r)
 			return
 		}
 
-		htmlContent, _ := render.RenderMarkdown(mdContent, theme.GetSyntaxThemeFromRequest(r))
+		htmlContent, _ := render.RenderMarkdown(post.Markdown, theme.GetSyntaxThemeFromRequest(r))
+
+		title := post.Title
 
 		w.Header().Set(config.HCType, config.CTypeHTML)
 		w.WriteHeader(http.StatusOK)
-		w.Write(htmlContent)
+		w.Write([]byte(fmt.Sprintf("<title>%s</title>\n%s", title, htmlContent)))
 	})
 
 	mux.Handle(config.StaticUrlPath, http.StripPrefix(config.StaticUrlPath, http.FileServer(http.FS(static))))
@@ -97,17 +121,102 @@ func main() {
 			Value: "",
 			Path:  "/",
 		})
+		w.Header().Add(config.HHxRedirect, "/new/post/edit")
 		http.Redirect(w, r, "/new/post/edit", http.StatusFound)
 	})
-	mux.HandleFunc("/new/post/edit", editorHandler.ServeNewPostEditor)
-	mux.HandleFunc("/partials/post/preview", midWithDraftSaving(serveNewPostPreview))
 	mux.HandleFunc("/theme/toggle", serveThemePostToggle)
 	mux.HandleFunc("/syntax-theme/set", serveSyntaxThemePostSet)
 	mux.HandleFunc("/syntax-theme/{theme}", serveSyntaxThemeGetTheme)
 	mux.HandleFunc("/sse", eventsHandler)
 	mux.HandleFunc("/", serveIndex)
 
-	postRepository.Init()
+	mux.Handle(
+		"/partials/post/preview",
+		http.HandlerFunc(midWithPostSaving(serveNewPostPreview)),
+	)
+
+	mux.Handle(
+		"/partials/draft/preview",
+		http.HandlerFunc(midWithDraftSaving(serveNewPostPreview)),
+	)
+
+	mux.Handle(
+		"/new/post/edit",
+		http.HandlerFunc(editorHandler.ServeNewDraftEditor),
+	)
+
+	mux.Handle(
+		"/edit/post/",
+		http.HandlerFunc(ServeEditPost),
+	)
+
+	mux.HandleFunc("/webhook/user", clerkAuthProvider.HandleWebhookUser)
+
+	mux.HandleFunc("/api/posts/{id}", func(w http.ResponseWriter, r *http.Request) {
+		usrId, err := ed25519AuthProvider.EnforceUserAndGetId(w, r)
+		if err != nil {
+			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+			return
+		}
+
+		switch r.Method {
+		case http.MethodPost:
+			draftId := r.PathValue("id")
+
+			if _, err := editorRepo.GetDraft(editor.DraftId(draftId)); err != nil {
+				http.Error(w, "Draft not found", http.StatusNotFound)
+				return
+			}
+
+			content := r.FormValue("content")
+
+			post := postRepository.NewPost()
+			post.Markdown = []byte(content)
+			post.Owner = usrId
+			post.Path = string(post.Id)
+
+			frontMatter := util.GetFrontMatter(post.Markdown)
+			if frontMatter != nil && frontMatter.Title != "" {
+				post.Title = frontMatter.Title
+			} else {
+				post.Title = "Untitled - " + post.CreatedDate.Format("2006-01-02")
+			}
+
+			if err := postRepository.SavePost(post); err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+		case http.MethodPut:
+			postId := r.PathValue("id")
+			content := r.FormValue("content")
+
+			post, err := postRepository.ReadPost(postId)
+			if post == nil {
+				http.Error(w, "Post not found", http.StatusNotFound)
+				return
+			} else if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+
+			post.Markdown = []byte(content)
+			frontMatter := util.GetFrontMatter(post.Markdown)
+			if frontMatter != nil && frontMatter.Title != "" && post.Title != frontMatter.Title {
+				post.Title = frontMatter.Title
+			}
+
+			if err := postRepository.SetPostContent(post); err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+		default:
+			http.Error(w, config.HTTPErrMethodNotAllowed, http.StatusMethodNotAllowed)
+		}
+	})
+
+	auth.RegisterEd25519AuthRoutes(mux, ed25519AuthProvider.(*auth.Ed25519AuthProvider), &content)
+
+	go postRepository.Init()
 	postRepository.SetReloadNotifier(handleReloadPost)
 
 	securedMux := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -118,7 +227,46 @@ func main() {
 		}
 	})
 
-	log.Fatal(http.ListenAndServe(config.ServerAddr+":"+config.ServerPort, cacheIt(securedMux)))
+	authMux := ed25519AuthProvider.WithHeaderAuthorization()(securedMux)
+	authHandlerFunc := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		authMux.ServeHTTP(w, r)
+	})
+
+	log.Fatal(http.ListenAndServe(config.ServerAddr+":"+config.ServerPort, cacheIt(authHandlerFunc)))
+}
+
+func ServeEditPost(w http.ResponseWriter, r *http.Request) {
+	usrId, err := ed25519AuthProvider.GetUserIdFromSession(r)
+	if err != nil {
+		// Verify if it's an Hx-Request and if not, use standard redirect
+		if r.Header.Get("Hx-Request") == "" {
+			http.Redirect(w, r, "/auth/login?redirect="+url.QueryEscape(r.URL.String()), http.StatusFound)
+			return
+		}
+		// Redirect to /auth/login if no userId (unauthorized)
+		w.Header().Add(config.HHxRedirect, "/auth/login?redirect="+url.QueryEscape(r.URL.String()))
+		return
+	}
+
+	postId := strings.TrimPrefix(r.URL.Path, "/edit/post/")
+	if postId == "" {
+		http.NotFound(w, r)
+		return
+	}
+
+	post, err := postRepository.ReadPost(postId)
+	if err != nil {
+		http.NotFound(w, r)
+		return
+	}
+
+	// Check ownership
+	if usrId != post.Owner {
+		w.Header().Add(config.HHxRedirect, r.Header.Get("Referer"))
+		return
+	}
+
+	editorHandler.ServeEditPostEditor(w, r, post)
 }
 
 func midWithDraftSaving(next http.HandlerFunc) http.HandlerFunc {
@@ -135,6 +283,18 @@ func midWithDraftSaving(next http.HandlerFunc) http.HandlerFunc {
 			return
 		}
 
+		next.ServeHTTP(w, r)
+	}
+}
+
+func midWithPostSaving(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		postId := strings.TrimPrefix(r.URL.Path, "/edit/post/")
+		if postId == "" {
+			http.NotFound(w, r)
+			return
+		}
+		// The content is at r.FormValue("content")
 		next.ServeHTTP(w, r)
 	}
 }
@@ -216,36 +376,23 @@ func servePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	mdContent, err := postRepository.ReadPost(postId)
+	post, err := postRepository.ReadPost(postId)
 	if err != nil {
 		http.NotFound(w, r)
 		return
 	}
 
-	htmlContent, extra := render.RenderMarkdown(mdContent, theme.GetSyntaxThemeFromRequest(r))
-
-	var title string
-	if info := extra.(*mast.TitleData); info != nil {
-		if info.Title != "" {
-			title = info.Title
-		} else {
-			title = strings.TrimSuffix(postId, filepath.Ext(postId))
-		}
-	}
-
-	post := model.Post{
-		Title:   title,
-		Path:    postId,
-		Content: template.HTML(htmlContent),
-		Info:    extra.(*mast.TitleData),
-	}
+	htmlContent, extra := render.RenderMarkdown(post.Markdown, theme.GetSyntaxThemeFromRequest(r))
+	post.Path = postId
+	post.Content = template.HTML(htmlContent)
+	post.Info = extra.(*mast.TitleData)
 
 	data := struct {
 		*model.PageData
 		Post *model.Post
 	}{
 		PageData: model.NewPageData(r),
-		Post:     &post,
+		Post:     post,
 	}
 
 	tmpl, err := template.ParseFS(content, config.TemplatesLocalDir+"/"+config.TemplateLayout, config.TemplatesLocalDir+"/"+config.TemplatePost)

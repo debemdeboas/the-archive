@@ -22,10 +22,14 @@ type Post struct {
 	MDContentHash string
 
 	Markdown     []byte
+	CreatedDate  time.Time
 	ModifiedDate time.Time
 
 	// Optional data from Mmark front matter.
 	Info *mast.TitleData
+
+	// Optional data: owner of the post (for example, the user who created it).
+	Owner UserId
 }
 
 func (p *Post) GetTitle() string {

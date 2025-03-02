@@ -1,0 +1,130 @@
+{{define "ed25519_auth"}}
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Authentication Required</title>
+    <link rel="stylesheet" href="/static/style.css" />
+    <link rel="stylesheet" href="/static/auth.css" />
+  </head>
+  <body class="dark-theme">
+    <div class="auth-container">
+      <h1>Authentication Required</h1>
+      <p>Sign the challenge with your private key to proceed.</p>
+
+      <div class="auth-form">
+        <div>
+          <h3>Current Challenge</h3>
+          <div class="challenge-container" id="challenge">Loading...</div>
+          <small>Sign this with your private key.</small>
+        </div>
+
+        <div>
+          <h3>Signature</h3>
+          <input
+            type="text"
+            id="signature"
+            class="signature-input"
+            placeholder="Paste base64-encoded signature here"
+          />
+        </div>
+
+        <div class="button-group">
+          <button id="authenticate">Authenticate</button>
+          <button id="refreshChallenge">Refresh Challenge</button>
+        </div>
+      </div>
+
+      <div id="status" class="status"></div>
+    </div>
+
+    <script>
+      document.addEventListener("DOMContentLoaded", function () {
+        const challengeContainer = document.getElementById("challenge");
+        const signatureInput = document.getElementById("signature");
+        const authenticateBtn = document.getElementById("authenticate");
+        const refreshChallengeBtn = document.getElementById("refreshChallenge");
+        const statusContainer = document.getElementById("status");
+
+        loadChallenge();
+
+        authenticateBtn.addEventListener("click", authenticate);
+        refreshChallengeBtn.addEventListener("click", refreshChallenge);
+
+        function loadChallenge() {
+          fetch("/auth/challenge", {
+            method: "GET",
+            headers: { Accept: "application/json" },
+          })
+            .then((response) => response.json())
+            .then((data) => {
+              challengeContainer.textContent = data.challenge;
+            })
+            .catch((error) => {
+              showStatus("Error loading challenge: " + error.message, "error");
+            });
+        }
+
+        function refreshChallenge() {
+          fetch("/auth/challenge", {
+            method: "POST",
+            headers: { Accept: "application/json" },
+          })
+            .then((response) => response.json())
+            .then((data) => {
+              challengeContainer.textContent = data.challenge;
+              showStatus("Challenge refreshed successfully", "success");
+            })
+            .catch((error) => {
+              showStatus(
+                "Error refreshing challenge: " + error.message,
+                "error"
+              );
+            });
+        }
+
+        function authenticate() {
+          const signature = signatureInput.value.trim();
+          if (!signature) {
+            showStatus("Please provide a signature", "error");
+            return;
+          }
+
+          fetch("/auth/verify", {
+            method: "POST",
+            headers: {
+              Authorization: signature,
+              "Content-Type": "application/json",
+            },
+          })
+            .then((response) => {
+              if (response.ok) {
+                showStatus(
+                  "Authentication successful! Redirecting...",
+                  "success"
+                );
+                setTimeout(() => {
+                  window.location.href = "{{.RedirectURL}}";
+                }, 1500);
+              } else {
+                return response.text().then((text) => {
+                  throw new Error(text || "Authentication failed");
+                });
+              }
+            })
+            .catch((error) => {
+              showStatus("Authentication failed: " + error.message, "error");
+            });
+        }
+
+        function showStatus(message, type) {
+          statusContainer.textContent = message;
+          statusContainer.className = "status " + type;
+          statusContainer.style.display = "block";
+        }
+      });
+    </script>
+  </body>
+</html>
+{{end}}

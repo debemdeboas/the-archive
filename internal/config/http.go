@@ -5,8 +5,12 @@ const (
 	HETag         = "ETag"
 	HCacheControl = "Cache-Control"
 
+	HHxRedirect = "Hx-Redirect"
+	HHxRefresh  = "Hx-Refresh"
+
 	CTypeCSS  = "text/css"
 	CTypeHTML = "text/html"
+	CTypeJSON = "application/json"
 )
 
 const (

@@ -27,6 +27,11 @@ func GetFrontMatter(md []byte) *mast.TitleData {
 
 	delimiter := []byte("%%%")
 
+	// Check if md is long enough to contain the delimiter
+	if len(md) < 2*len(delimiter) {
+		return nil
+	}
+
 	first := bytes.Index(md[:len(delimiter)+1], delimiter)
 	if first == -1 {
 		return nil
