@@ -63,82 +63,120 @@
   </head>
   <body class="{{.Theme}}">
     <nav class="navbar">
-      <div class="navbar-left">
-        {{if .IsPost}}
-        <div id="edit-post" class="title-wrapper" data-tooltip="Edit">
-          <button
-            hx-get="/edit/post/{{.Post.Id}}"
-            hx-boost="true"
-            hx-target="body"
-            hx-swap="outerHTML"
-            hx-push-url="true"
-          >
-            <i class="fa-solid fa-pen-to-square"></i>
-          </button>
+      <div class="navbar-wrapper">
+        <button class="hamburger" onclick="toggleNavbar()">
+          <i class="fa fa-bars"></i>
+        </button>
+        <div class="navbar-center" id="nav-center-hamburguer">
+          <h1>
+            <a
+              hx-get="/"
+              hx-target="body"
+              hx-swap="outerHTML"
+              hx-push-url="true"
+              id="nav-go-home"
+            >
+              {{.SiteName}}
+            </a>
+          </h1>
         </div>
-        {{end}}
-        {{template "navbar-left" .}}
       </div>
-      <div class="navbar-center">
-        <h1><a hx-get="/" hx-target="body" hx-swap="outerHTML" hx-push-url="true" id="nav-go-home">{{ .SiteName }}</a></h1>
-      </div>
-      <div class="navbar-right">
-        <div id="sign-in" class="title-wrapper" data-tooltip="Sign in">
-          <button hx-get="/auth/login" hx-target="body" hx-swap="outerHTML" hx-push-url="true" hx-vals='{"refresh": true}'>
-            <i class="fa-solid fa-user-shield"></i>
-          </button>
+      <div class="navbar-menu">
+        <div class="navbar-left">
+          {{if .IsPost}}
+          <div id="edit-post" class="title-wrapper" data-tooltip="Edit">
+            <button
+              hx-get="/edit/post/{{.Post.Id}}"
+              hx-boost="true"
+              hx-target="body"
+              hx-swap="outerHTML"
+              hx-push-url="true"
+            >
+              <i class="fa-solid fa-pen-to-square"></i>
+            </button>
+          </div>
+          {{end}}
+          {{template "navbar-left" .}}
         </div>
-        {{if .IsEditor}}
-        <div class="title-wrapper" data-tooltip="Delete draft and start fresh">
-          <button onclick="window.location.href='/new/post'">
-            <i class="fas fa-refresh"></i>
-          </button>
+        <div class="navbar-center" id="nav-center">
+          <h1>
+            <a
+              hx-get="/"
+              hx-target="body"
+              hx-swap="outerHTML"
+              hx-push-url="true"
+              id="nav-go-home"
+              >{{ .SiteName }}</a
+            >
+          </h1>
         </div>
-        {{else}}
-        <div class="title-wrapper" data-tooltip="Create a new draft">
-          <button onclick="window.location.href='/new/post'">
-            <i class="fas fa-plus"></i>
-          </button>
-        </div>
-        {{end}}
-        <div class="title-wrapper" data-tooltip="Toggle dark/light theme">
-          <button
-            hx-post="/theme/toggle"
-            hx-swap="innerHTML"
-            hx-target=".theme-icon"
-            class="theme-toggle"
+        <div class="navbar-right">
+          <div id="sign-in" class="title-wrapper" data-tooltip="Sign in">
+            <button
+              hx-get="/auth/login"
+              hx-target="body"
+              hx-swap="outerHTML"
+              hx-push-url="true"
+              hx-vals='{"refresh": true}'
+            >
+              <i class="fa-solid fa-user-shield"></i>
+            </button>
+          </div>
+          {{if .IsEditor}}
+          <div
+            class="title-wrapper"
+            data-tooltip="Delete draft and start fresh"
           >
-            <span
-              class="theme-icon"
-              hx-get="/theme/opposite-icon"
-              hx-trigger="load"
-              hx-vals='js:{"theme": getCurrentTheme()}'
-            ></span>
-          </button>
-        </div>
-        <div
-          class="title-wrapper"
-          data-tooltip="Select syntax highlighting theme"
-        >
-          <select
-            hx-post="/syntax-theme/set"
-            hx-trigger="change"
-            hx-swap="innerHTML"
-            hx-target="#syntax-highlight"
-            class="syntax-theme-select"
-            name="syntax-theme-select"
+            <button onclick="window.location.href='/new/post'">
+              <i class="fas fa-refresh"></i>
+            </button>
+          </div>
+          {{else}}
+          <div class="title-wrapper" data-tooltip="Create a new draft">
+            <button onclick="window.location.href='/new/post'">
+              <i class="fas fa-plus"></i>
+            </button>
+          </div>
+          {{end}}
+          <div class="title-wrapper" data-tooltip="Toggle dark/light theme">
+            <button
+              hx-post="/theme/toggle"
+              hx-swap="innerHTML"
+              hx-target=".theme-icon"
+              class="theme-toggle"
+            >
+              <span
+                class="theme-icon"
+                hx-get="/theme/opposite-icon"
+                hx-trigger="load"
+                hx-vals='js:{"theme": getCurrentTheme()}'
+              ></span>
+            </button>
+          </div>
+          <div
+            class="title-wrapper"
+            data-tooltip="Select syntax highlighting theme"
           >
-            {{range .SyntaxThemes}}
-            <option value="{{.}}" {{if eq . $.SyntaxTheme}}selected{{end}}>
-              {{.}}
-            </option>
-            {{end}}
-          </select>
+            <select
+              hx-post="/syntax-theme/set"
+              hx-trigger="change"
+              hx-swap="innerHTML"
+              hx-target="#syntax-highlight"
+              class="syntax-theme-select"
+              name="syntax-theme-select"
+            >
+              {{range .SyntaxThemes}}
+              <option value="{{.}}" {{if eq . $.SyntaxTheme}}selected{{end}}>
+                {{.}}
+              </option>
+              {{end}}
+            </select>
+          </div>
         </div>
       </div>
     </nav>
     <style id="syntax-highlight">
-    {{.SyntaxCSS}}
+      {{.SyntaxCSS}}
     </style>
     <style>
       .MathJax,
@@ -147,7 +185,7 @@
         font-size: 1.2em !important;
         z-index: 0;
       }
-    
+
       .mathjax-ready .MathJax,
       .mathjax-ready .math {
         opacity: 1;

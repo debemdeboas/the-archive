@@ -25,6 +25,19 @@ async function configClerk() {
     navbarRight.insertBefore(signInButton, navbarRight.firstChild);
 }
 
+function toggleNavbar() {
+    const navbar = document.querySelector('.navbar');
+    navbar.classList.toggle('open');
+    const icon = document.querySelector('.hamburger i');
+    if (navbar.classList.contains('open')) {
+        icon.classList.remove('fa-bars');
+        icon.classList.add('fa-times');
+    } else {
+        icon.classList.remove('fa-times');
+        icon.classList.add('fa-bars');
+    }
+}
+
 window.onload = async () => {
     // await configClerk();
 
