@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/gob"
 	"fmt"
-	"log"
 	"slices"
 	"time"
 
@@ -39,7 +38,7 @@ func NewDbPostRepository(db db.Db) *DbPostRepository {
 func (r *DbPostRepository) Init() {
 	posts, postMap, err := r.GetPosts()
 	if err != nil {
-		log.Fatal("Error initializing posts:", err)
+		repoLogger.Fatal().Err(err).Msg("Error initializing posts")
 	}
 
 	r.postsCacheSorted = posts
@@ -102,7 +101,7 @@ func (r *DbPostRepository) ReloadPosts() {
 	for {
 		posts, postMap, err := r.GetPosts()
 		if err != nil {
-			log.Println("Error reloading posts:", err)
+			repoLogger.Error().Err(err).Msg("Error reloading posts")
 		} else {
 			var curHashBuf bytes.Buffer
 			gob.NewEncoder(&curHashBuf).Encode(posts)
@@ -111,7 +110,7 @@ func (r *DbPostRepository) ReloadPosts() {
 			gob.NewEncoder(&oldHashBuf).Encode(r.postsCacheSorted)
 
 			if curHashBuf.String() != oldHashBuf.String() {
-				log.Println("Posts have changed, reloading")
+				repoLogger.Info().Msg("Posts have changed, reloading")
 				// Try to find which posts have changed
 				for _, post := range r.postsCacheSorted {
 					if newPost, ok := postMap[string(post.Id)]; ok {
@@ -122,7 +121,10 @@ func (r *DbPostRepository) ReloadPosts() {
 						gob.NewEncoder(&oldHashBuf).Encode(post)
 
 						if newHashBuf.String() != oldHashBuf.String() {
-							log.Printf("Reloading post: [%s] %s", post.Id, post.Title)
+							repoLogger.Info().
+								Str("post_id", string(post.Id)).
+								Str("title", post.Title).
+								Msg("Reloading post")
 							if r.reloadNotifier != nil {
 								go r.reloadNotifier(post.Id)
 							}

@@ -1,6 +1,9 @@
 package repository
 
-import "github.com/debemdeboas/the-archive/internal/model"
+import (
+	"github.com/debemdeboas/the-archive/internal/model"
+	"github.com/rs/zerolog"
+)
 
 type PostRepository interface {
 	Init()
@@ -15,4 +18,10 @@ type PostRepository interface {
 
 	// SetReloadNotifier sets a function that will be called when the posts are reloaded.
 	SetReloadNotifier(notifier func(model.PostId))
+}
+
+var repoLogger zerolog.Logger
+
+func SetLogger(logger zerolog.Logger) {
+	repoLogger = logger
 }

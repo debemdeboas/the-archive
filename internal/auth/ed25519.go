@@ -8,12 +8,12 @@ import (
 	"encoding/pem"
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"strings"
 
 	"github.com/debemdeboas/the-archive/internal/config"
 	"github.com/debemdeboas/the-archive/internal/model"
+	"github.com/rs/zerolog"
 )
 
 // Ed25519AuthProvider implements AuthProvider with Ed25519-based auth
@@ -60,6 +60,8 @@ func NewEd25519AuthProvider(publicKeyPEM string, headerName string, userId model
 func (p *Ed25519AuthProvider) WithHeaderAuthorization() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			l := zerolog.Ctx(r.Context())
+
 			// Try to get signature from header or cookie
 			var signature []byte
 			var err error
@@ -69,7 +71,7 @@ func (p *Ed25519AuthProvider) WithHeaderAuthorization() func(http.Handler) http.
 			if authHeader != "" {
 				signature, err = base64.StdEncoding.DecodeString(strings.TrimSpace(authHeader))
 				if err != nil {
-					log.Println("Failed to decode signature from header:", err)
+					l.Error().Err(err).Msg("Failed to decode signature from header")
 				}
 			}
 
@@ -79,7 +81,7 @@ func (p *Ed25519AuthProvider) WithHeaderAuthorization() func(http.Handler) http.
 				if err == nil && cookie.Value != "" {
 					signature, err = base64.StdEncoding.DecodeString(cookie.Value)
 					if err != nil {
-						log.Println("Failed to decode signature from cookie:", err)
+						l.Error().Err(err).Msg("Failed to decode signature from cookie")
 					}
 				}
 			}
@@ -103,8 +105,10 @@ func (p *Ed25519AuthProvider) WithHeaderAuthorization() func(http.Handler) http.
 
 // GetUserIdFromSession extracts the user ID from the request
 func (p *Ed25519AuthProvider) GetUserIdFromSession(r *http.Request) (model.UserId, error) {
+	l := zerolog.Ctx(r.Context())
 	userId := r.Context().Value(ContextKeyUserId)
 	if userId == nil {
+		l.Warn().Msg("No user ID found in context")
 		return "", errors.New("no user ID in context")
 	}
 	return userId.(model.UserId), nil
@@ -124,6 +128,7 @@ func (p *Ed25519AuthProvider) GetChallenge() []byte {
 func (p *Ed25519AuthProvider) RefreshChallenge() error {
 	challenge := make([]byte, 32)
 	if _, err := rand.Read(challenge); err != nil {
+		authLogger.Error().Err(err).Msg("Failed to generate challenge")
 		return fmt.Errorf("failed to generate challenge: %w", err)
 	}
 	p.challenge = challenge
@@ -132,8 +137,11 @@ func (p *Ed25519AuthProvider) RefreshChallenge() error {
 
 // EnforceUserAndGetId enforces the user and returns the user ID
 func (p *Ed25519AuthProvider) EnforceUserAndGetId(w http.ResponseWriter, r *http.Request) (model.UserId, error) {
+	l := zerolog.Ctx(r.Context())
 	userId, err := p.GetUserIdFromSession(r)
 	if err != nil {
+		l.Warn().Err(err).Msg("Unauthorized access attempt")
+
 		// Set Hx-Redirect to auth page
 		w.Header().Add(config.HHxRedirect, "/auth/login")
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)

@@ -3,7 +3,6 @@ package auth
 import (
 	"encoding/json"
 	"errors"
-	"log"
 	"net/http"
 	"strings"
 
@@ -12,6 +11,7 @@ import (
 	clerkuser "github.com/clerk/clerk-sdk-go/v2/user"
 	"github.com/debemdeboas/the-archive/internal/db"
 	"github.com/debemdeboas/the-archive/internal/model"
+	"github.com/rs/zerolog"
 )
 
 type ClerkAuthProvider struct {
@@ -27,7 +27,11 @@ func NewClerkAuthProvider(clerkKey string) *ClerkAuthProvider {
 		cookieExtractor: clerkhttp.AuthorizationJWTExtractor(func(r *http.Request) string {
 			cookie, err := r.Cookie("__session")
 			if err != nil || cookie == nil {
-				log.Println("Authorization cookie not found:", err)
+				// Retrieve logger from context if request is available
+				if r != nil {
+					l := zerolog.Ctx(r.Context())
+					l.Error().Err(err).Msg("Authorization cookie not found")
+				}
 				return ""
 			}
 			return cookie.Value
@@ -40,13 +44,16 @@ func (c *ClerkAuthProvider) WithHeaderAuthorization() func(http.Handler) http.Ha
 }
 
 func (c *ClerkAuthProvider) GetUserIdFromSession(r *http.Request) (model.UserId, error) {
+	l := zerolog.Ctx(r.Context())
 	claims, ok := clerk.SessionClaimsFromContext(r.Context())
 	if !ok {
+		l.Warn().Msg("Failed to get session claims from context")
 		return "", errors.New("failed to get session claims from context")
 	}
 
 	usr, err := clerkuser.Get(r.Context(), claims.Subject)
 	if err != nil {
+		l.Error().Err(err).Msg("Failed to get user from Clerk")
 		return "", err
 	}
 
@@ -54,7 +61,8 @@ func (c *ClerkAuthProvider) GetUserIdFromSession(r *http.Request) (model.UserId,
 }
 
 func (c *ClerkAuthProvider) HandleWebhookUser(w http.ResponseWriter, r *http.Request) {
-	log.Println("User webhook received")
+	l := zerolog.Ctx(r.Context())
+	l.Info().Msg("User webhook received")
 
 	type EventPayload struct {
 		Data struct {
@@ -67,67 +75,75 @@ func (c *ClerkAuthProvider) HandleWebhookUser(w http.ResponseWriter, r *http.Req
 	var usr clerk.User
 	var payload EventPayload
 	if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
-		log.Println("Error decoding event payload:", err)
+		l.Error().Err(err).Msg("Error decoding event payload")
 		http.Error(w, "Bad request", http.StatusBadRequest)
 		return
 	}
 
 	switch payload.Type {
 	case "user.created":
-		log.Println("User created webhook received")
+		l.Info().Msg("User created webhook received")
 
 		usr = payload.Data.User
 
 		// Need to get Twitter/X username first and error out if it's not available
 		if len(usr.ExternalAccounts) == 0 {
-			log.Println("No external accounts found for user", usr.ID)
+			l.Error().Str("user_id", usr.ID).Msg("No external accounts found for user")
 			http.Error(w, "No external accounts found", http.StatusBadRequest)
 			return
 		}
 
 		// Verify if provider is "oauth_x"
 		if !strings.EqualFold(usr.ExternalAccounts[0].Provider, "oauth_x") {
-			log.Println("Invalid provider for user", usr.ID)
+			l.Error().Str("user_id", usr.ID).Msg("Invalid provider for user")
 			http.Error(w, "Invalid provider", http.StatusBadRequest)
 			return
 		}
 
 		_, err := c.db.Exec("INSERT INTO users (id, username) VALUES (?, ?)", usr.ID, usr.ExternalAccounts[0].Username)
 		if err != nil {
-			log.Println("Error inserting user:", err)
+			l.Error().Err(err).Str("user_id", usr.ID).Msg("Error inserting user")
 			http.Error(w, "Error saving user", http.StatusInternalServerError)
 			return
 		}
 
-		log.Printf("User %s created", usr.ID)
-
+		l.Info().Str("user_id", usr.ID).Msg("User created")
 		w.WriteHeader(http.StatusCreated)
-	case "user.updated":
 
-		log.Println("User updated webhook received")
+	case "user.updated":
+		l.Info().Msg("User updated webhook received")
 		w.WriteHeader(http.StatusNoContent)
 
 	case "user.deleted":
-		log.Println("User deleted webhook received")
+		l.Info().Msg("User deleted webhook received")
 
 		usr = payload.Data.User
 
 		_, err := c.db.Exec("DELETE FROM users WHERE id = ?", usr.ID)
 		if err != nil {
-			log.Println("Error deleting user:", err)
+			l.Error().Err(err).Str("user_id", usr.ID).Msg("Error deleting user")
 			http.Error(w, "Error deleting user", http.StatusInternalServerError)
 			return
 		}
 
-		log.Printf("User %s deleted", usr.ID)
-
+		l.Info().Str("user_id", usr.ID).Msg("User deleted")
 		w.WriteHeader(http.StatusNoContent)
+
 	default:
+		l.Warn().Str("event_type", payload.Type).Msg("Invalid event type")
 		http.Error(w, "Invalid event type", http.StatusBadRequest)
 		return
 	}
 }
 
 func (c *ClerkAuthProvider) EnforceUserAndGetId(w http.ResponseWriter, r *http.Request) (model.UserId, error) {
-	return "", nil
+	l := zerolog.Ctx(r.Context())
+	userId, err := c.GetUserIdFromSession(r)
+	if err != nil {
+		l.Warn().Err(err).Msg("Unauthorized access attempt")
+		w.Header().Add("HHxRedirect", "/auth/login") // Assuming this header is defined elsewhere
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return "", err
+	}
+	return userId, nil
 }

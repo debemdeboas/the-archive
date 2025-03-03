@@ -64,14 +64,17 @@ func Ed25519VerifyHandler(provider *Ed25519AuthProvider) http.HandlerFunc {
 
 		signature, err := base64.StdEncoding.DecodeString(strings.TrimSpace(authHeader))
 		if err != nil {
-			log.Println("Failed to decode signature:", err)
+			authLogger.Error().Err(err).Msg("Failed to decode signature")
 			http.Error(w, "Invalid signature format", http.StatusUnauthorized)
 			return
 		}
 
 		// Verify the signature against the challenge
 		if !ed25519.Verify(provider.publicKey, provider.challenge, signature) {
-			log.Println("Signature verification failed")
+			authLogger.Error().
+				Str("signature", string(signature)).
+				Str("challenge", string(provider.challenge)).
+				Msg("Signature verification failed")
 			http.Error(w, "Invalid signature", http.StatusUnauthorized)
 			return
 		}

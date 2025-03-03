@@ -36,7 +36,6 @@ var Db db.Db = db.NewSQLite()
 
 var clients = sse.NewSSEClients()
 
-var dbPostRepository repository.PostRepository = repository.NewDbPostRepository(Db)
 var postRepository repository.PostRepository = repository.NewDbPostRepository(Db)
 
 var editorRepo editor.Repository = editor.NewMemoryRepository()
@@ -53,10 +52,13 @@ func main() {
 		log.Error().Err(err).Msg("Error loading .env file")
 	}
 
-	Db.InitDb()
+	db.SetLogger(log)
+	if err := Db.InitDb(); err != nil {
+		log.Fatal().Err(err).Msg("Error initializing database")
+	}
 
+	auth.SetLogger(log)
 	clerkAuthProvider = auth.NewClerkAuthProvider(os.Getenv("CLERK_API"))
-
 	ed25519AuthProvider, err = auth.NewEd25519AuthProvider(
 		os.Getenv("ED25519_PUBKEY"),
 		"Authorization",
@@ -508,6 +510,8 @@ func serveSyntaxThemeGetTheme(w http.ResponseWriter, r *http.Request) {
 }
 
 func eventsHandler(w http.ResponseWriter, r *http.Request) {
+	l := zerolog.Ctx(r.Context())
+
 	postId := r.URL.Query().Get("post")
 	if postId == "" {
 		http.Error(w, "Post parameter required", http.StatusBadRequest)
@@ -536,13 +540,13 @@ func eventsHandler(w http.ResponseWriter, r *http.Request) {
 
 	clients.Add(client)
 
-	log.Debug().
+	l.Debug().
 		Str("remote_addr", r.RemoteAddr).
 		Msg("New SSE client connected")
 
 	defer func() {
 		clients.Delete(client)
-		log.Debug().
+		l.Debug().
 			Str("remote_addr", r.RemoteAddr).
 			Msg("SSE client disconnected")
 	}()

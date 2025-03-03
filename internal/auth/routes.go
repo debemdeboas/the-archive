@@ -3,7 +3,6 @@ package auth
 import (
 	"embed"
 	"html/template"
-	"log"
 	"net/http"
 
 	"github.com/debemdeboas/the-archive/internal/config"
@@ -17,7 +16,8 @@ func RegisterEd25519AuthRoutes(mux *http.ServeMux, provider *Ed25519AuthProvider
 		config.TemplatesLocalDir+"/ed25519_auth.html",
 	)
 	if err != nil {
-		log.Fatal("Error loading auth template:", err)
+		authLogger.Fatal().Err(err).Msg("Error loading auth template")
+		return
 	}
 
 	mux.HandleFunc("/auth/challenge", Ed25519ChallengeHandler(provider))

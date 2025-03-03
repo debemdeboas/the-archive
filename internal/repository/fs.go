@@ -1,7 +1,6 @@
 package repository
 
 import (
-	"log"
 	"os"
 	"path/filepath"
 	"slices"
@@ -43,7 +42,7 @@ func (r *FSPostRepository) notifyPostReload(postId model.PostId) {
 func (r *FSPostRepository) Init() {
 	posts, postMap, err := r.GetPosts()
 	if err != nil {
-		log.Fatal("Error initializing posts:", err)
+		repoLogger.Fatal().Err(err).Msg("Error initializing posts")
 	}
 
 	r.postsCacheSorted = posts
@@ -117,12 +116,15 @@ func (r *FSPostRepository) ReloadPosts() {
 	for {
 		posts, postMap, err := r.GetPosts()
 		if err != nil {
-			log.Println("Error reloading posts:", err)
+			repoLogger.Error().Err(err).Msg("Error reloading posts")
 		} else {
 			for _, post := range r.postsCacheSorted {
 				if newPost, ok := postMap[string(post.Id)]; ok {
 					if newPost.MDContentHash != post.MDContentHash {
-						log.Printf("Reloading post: [%s] %s", post.Id, post.Title)
+						repoLogger.Info().
+							Str("post_id", string(post.Id)).
+							Str("title", post.Title).
+							Msg("Reloading post")
 						go r.notifyPostReload(post.Id)
 					}
 				}

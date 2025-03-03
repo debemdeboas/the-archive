@@ -37,7 +37,7 @@ func (s *SQLite) InitDb() error {
 	//     FOREIGN KEY(user_id) REFERENCES users(id)
 	// );
 
-	_, err = s.conn.Exec(`
+	res, err := s.conn.Exec(`
 PRAGMA foreign_keys = ON;
 
 CREATE TABLE IF NOT EXISTS users (
@@ -65,6 +65,7 @@ CREATE TABLE IF NOT EXISTS posts (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );`)
 
+	dbLogger.Info().Any("db_result", res).Msg("Database initialized")
 	return err
 }
 
@@ -80,9 +81,11 @@ func (s *SQLite) Close() error {
 }
 
 func (s *SQLite) Query(query string, args ...interface{}) (*sql.Rows, error) {
+	dbLogger.Info().Str("query", query).Msg("Query")
 	return s.conn.Query(query, args...)
 }
 
 func (s *SQLite) Exec(query string, args ...interface{}) (sql.Result, error) {
+	dbLogger.Info().Str("query", query).Msg("Exec")
 	return s.conn.Exec(query, args...)
 }

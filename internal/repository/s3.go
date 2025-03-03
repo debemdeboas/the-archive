@@ -3,7 +3,6 @@ package repository
 import (
 	"context"
 	"fmt"
-	"log"
 	"slices"
 	"time"
 
@@ -29,9 +28,8 @@ func NewS3PostRepository(accessKeyId, accessKeySecret, baseEndpoint string) *S3P
 		config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(accessKeyId, accessKeySecret, "")),
 		config.WithRegion("auto"),
 	)
-
 	if err != nil {
-		log.Fatal(err)
+		repoLogger.Fatal().Err(err).Msg("Error initializing S3 client")
 	}
 
 	client := s3.NewFromConfig(cfg, func(o *s3.Options) {
@@ -58,7 +56,7 @@ func (r *S3PostRepository) notifyPostReload(postId model.PostId) {
 func (r *S3PostRepository) Init() {
 	posts, postMap, err := r.GetPosts()
 	if err != nil {
-		log.Fatal("Error initializing posts:", err)
+		repoLogger.Fatal().Err(err).Msg("Error initializing posts")
 	}
 
 	r.postsCacheSorted = posts
@@ -121,12 +119,15 @@ func (r *S3PostRepository) ReloadPosts() {
 	for {
 		posts, postMap, err := r.GetPosts()
 		if err != nil {
-			log.Println("Error reloading posts:", err)
+			repoLogger.Error().Err(err).Msg("Error reloading posts")
 		} else {
 			for _, post := range r.postsCacheSorted {
 				if newPost, ok := postMap[post.Path]; ok {
 					if newPost.MDContentHash != post.MDContentHash {
-						log.Printf("Reloading post: %s", post.Path)
+						repoLogger.Info().
+							Str("post_id", string(post.Id)).
+							Str("title", post.Title).
+							Msg("Reloading post")
 						go r.notifyPostReload(model.PostId(post.Path))
 					}
 				}
