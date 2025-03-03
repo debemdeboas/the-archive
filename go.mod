@@ -16,6 +16,7 @@ require (
 	github.com/klauspost/compress v1.17.11
 	github.com/mattn/go-sqlite3 v1.14.24
 	github.com/mmarkdown/mmark/v2 v2.2.46
+	github.com/rs/zerolog v1.33.0
 )
 
 require (
@@ -39,10 +40,13 @@ require (
 	github.com/dlclark/regexp2 v1.11.4 // indirect
 	github.com/go-jose/go-jose/v3 v3.0.3 // indirect
 	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
+	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-runewidth v0.0.15 // indirect
 	github.com/muesli/termenv v0.15.2 // indirect
+	github.com/pkg/errors v0.9.1 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
+	github.com/stretchr/testify v1.9.0 // indirect
 	golang.org/x/crypto v0.19.0 // indirect
 	golang.org/x/sys v0.19.0 // indirect
 )

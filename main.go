@@ -5,19 +5,21 @@ import (
 	"fmt"
 	"html/template"
 	"io/fs"
-	"log"
 	"net/http"
 	"net/url"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/joho/godotenv"
 	"github.com/mmarkdown/mmark/v2/mast"
+	"github.com/rs/zerolog"
 
 	"github.com/debemdeboas/the-archive/internal/auth"
 	"github.com/debemdeboas/the-archive/internal/cache"
 	"github.com/debemdeboas/the-archive/internal/config"
 	"github.com/debemdeboas/the-archive/internal/db"
+	"github.com/debemdeboas/the-archive/internal/logger"
 	"github.com/debemdeboas/the-archive/internal/model"
 	"github.com/debemdeboas/the-archive/internal/render"
 	"github.com/debemdeboas/the-archive/internal/repository"
@@ -43,10 +45,12 @@ var editorHandler = editor.NewHandler(editorRepo, clients, &content)
 var clerkAuthProvider auth.AuthProvider
 var ed25519AuthProvider auth.AuthProvider
 
+var log = logger.Logger()
+
 func main() {
 	err := godotenv.Load()
 	if err != nil {
-		log.Println("Error loading .env file")
+		log.Error().Err(err).Msg("Error loading .env file")
 	}
 
 	Db.InitDb()
@@ -59,7 +63,7 @@ func main() {
 		model.UserId("admin"),
 	)
 	if err != nil {
-		log.Println(err)
+		log.Error().Err(err).Msg("Error starting ED25519 auth provider")
 	}
 
 	// Calculate the hash of static content
@@ -80,8 +84,10 @@ func main() {
 	})
 
 	mux.HandleFunc("/theme/opposite-icon", func(w http.ResponseWriter, r *http.Request) {
+		l := zerolog.Ctx(r.Context())
 		currTheme := r.URL.Query().Get("theme")
 		if currTheme == "" {
+			l.Error().Err(err).Msg("theme required")
 			http.Error(w, "theme required", http.StatusBadRequest)
 			return
 		}
@@ -153,8 +159,14 @@ func main() {
 	mux.HandleFunc("/webhook/user", clerkAuthProvider.HandleWebhookUser)
 
 	mux.HandleFunc("/api/posts/{id}", func(w http.ResponseWriter, r *http.Request) {
+		l := zerolog.Ctx(r.Context())
 		usrId, err := ed25519AuthProvider.EnforceUserAndGetId(w, r)
 		if err != nil {
+			l.Error().
+				Err(err).
+				Str("method", r.Method).
+				Str("path", r.URL.Path).
+				Msg("Unauthorized access attempt")
 			http.Error(w, "Unauthorized", http.StatusUnauthorized)
 			return
 		}
@@ -183,6 +195,10 @@ func main() {
 			}
 
 			if err := postRepository.SavePost(post); err != nil {
+				l.Error().
+					Err(err).
+					Str("post_id", string(post.Id)).
+					Msg("Failed to save post")
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
@@ -206,6 +222,10 @@ func main() {
 			}
 
 			if err := postRepository.SetPostContent(post); err != nil {
+				l.Error().
+					Err(err).
+					Str("post_id", string(post.Id)).
+					Msg("Failed to save post")
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
@@ -232,7 +252,27 @@ func main() {
 		authMux.ServeHTTP(w, r)
 	})
 
-	log.Fatal(http.ListenAndServe(config.ServerAddr+":"+config.ServerPort, cacheIt(authHandlerFunc)))
+	log.Fatal().Err(http.ListenAndServe(config.ServerAddr+":"+config.ServerPort, loggingMiddleware(cacheIt(authHandlerFunc)))).Msg("Server closed")
+}
+
+func loggingMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+
+		l := logger.Logger()
+		r = r.WithContext(l.WithContext(r.Context()))
+
+		defer func() {
+			l.Info().
+				Str("method", r.Method).
+				Str("url", r.URL.RequestURI()).
+				Str("user_agent", r.UserAgent()).
+				Dur("elapsed_ms", time.Since(start)).
+				Msg("incoming request")
+		}()
+
+		next.ServeHTTP(w, r)
+	})
 }
 
 func ServeEditPost(w http.ResponseWriter, r *http.Request) {
@@ -496,11 +536,15 @@ func eventsHandler(w http.ResponseWriter, r *http.Request) {
 
 	clients.Add(client)
 
-	log.Printf("New SSE client connected")
+	log.Debug().
+		Str("remote_addr", r.RemoteAddr).
+		Msg("New SSE client connected")
 
 	defer func() {
 		clients.Delete(client)
-		log.Printf("SSE client disconnected")
+		log.Debug().
+			Str("remote_addr", r.RemoteAddr).
+			Msg("SSE client disconnected")
 	}()
 
 	notify := r.Context().Done()
