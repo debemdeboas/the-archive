@@ -314,17 +314,12 @@ func serveNewPostPreview(w http.ResponseWriter, r *http.Request) {
 
 func cacheIt(h http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if strings.HasPrefix(r.URL.Path, "/partials/") {
-			w.Header().Set(config.HCacheControl, "no-cache")
-			h(w, r)
-			return
-		}
-
-		w.Header().Set(config.HCacheControl, "public, max-age=3600")
+		w.Header().Set(config.HCacheControl, "no-cache")
 		w.Header().Set("Vary", "Cookie")
 
 		// Add etag header to response if it's a static file
 		if hash, ok := cache.GetStaticHash(r.URL.Path); ok {
+			w.Header().Set(config.HCacheControl, "public, max-age=3600")
 			w.Header().Set(config.HETag, hash)
 		}
 
