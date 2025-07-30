@@ -145,12 +145,13 @@
               hx-target=".theme-icon"
               class="theme-toggle"
             >
-              <span
-                class="theme-icon"
-                hx-get="/theme/opposite-icon"
-                hx-trigger="load"
-                hx-vals='js:{"theme": getCurrentTheme()}'
-              ></span>
+              <span class="theme-icon">
+                {{if eq .Theme "light-theme"}}
+                <i class="fas fa-moon"></i>
+                {{else}}
+                <i class="fas fa-sun"></i>
+                {{end}}
+              </span>
             </button>
           </div>
           <div
