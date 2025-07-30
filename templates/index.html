@@ -8,6 +8,7 @@
 <ul class="post-list">
   {{range .Posts}}
   <li
+    id="{{.Id}}"
     hx-get="{{$.PostsPath}}{{.Id}}"
     hx-push-url="true"
     hx-target="body"
