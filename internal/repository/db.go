@@ -1,8 +1,6 @@
 package repository
 
 import (
-	"bytes"
-	"encoding/gob"
 	"fmt"
 	"slices"
 	"time"
@@ -103,38 +101,50 @@ func (r *DbPostRepository) ReloadPosts() {
 		if err != nil {
 			repoLogger.Error().Err(err).Msg("Error reloading posts")
 		} else {
-			var curHashBuf bytes.Buffer
-			gob.NewEncoder(&curHashBuf).Encode(posts)
+			// Check if any posts have changed by comparing content hashes
+			hasChanges := false
 
-			var oldHashBuf bytes.Buffer
-			gob.NewEncoder(&oldHashBuf).Encode(r.postsCacheSorted)
+			// Create a map of current cached posts for quick lookup
+			cachedPosts := make(map[string]*model.Post)
+			for i := range r.postsCacheSorted {
+				cachedPosts[string(r.postsCacheSorted[i].Id)] = &r.postsCacheSorted[i]
+			}
 
-			if curHashBuf.String() != oldHashBuf.String() {
-				repoLogger.Info().Msg("Posts have changed, reloading")
-				// Try to find which posts have changed
-				for _, post := range r.postsCacheSorted {
-					if newPost, ok := postMap[string(post.Id)]; ok {
-						var newHashBuf bytes.Buffer
-						gob.NewEncoder(&newHashBuf).Encode(newPost)
-
-						var oldHashBuf bytes.Buffer
-						gob.NewEncoder(&oldHashBuf).Encode(post)
-
-						if newHashBuf.String() != oldHashBuf.String() {
-							repoLogger.Info().
-								Str("post_id", string(post.Id)).
-								Str("title", post.Title).
-								Msg("Reloading post")
-							if r.reloadNotifier != nil {
-								go r.reloadNotifier(post.Id)
-							}
+			// Check for new or modified posts
+			for _, newPost := range posts {
+				if cachedPost, exists := cachedPosts[string(newPost.Id)]; exists {
+					// Compare content hashes to detect changes
+					if newPost.MDContentHash != cachedPost.MDContentHash {
+						hasChanges = true
+						repoLogger.Info().
+							Str("post_id", string(newPost.Id)).
+							Str("title", newPost.Title).
+							Msg("Post content changed, reloading")
+						if r.reloadNotifier != nil {
+							go r.reloadNotifier(newPost.Id)
 						}
 					}
+				} else {
+					// New post detected
+					hasChanges = true
+					repoLogger.Info().
+						Str("post_id", string(newPost.Id)).
+						Str("title", newPost.Title).
+						Msg("New post detected")
 				}
 			}
 
-			r.postsCacheSorted = posts
-			r.postsCache.SetTo(postMap)
+			// Check for deleted posts
+			if len(posts) != len(r.postsCacheSorted) {
+				hasChanges = true
+				repoLogger.Info().Msg("Number of posts changed")
+			}
+
+			if hasChanges {
+				repoLogger.Info().Msg("Posts have changed, updating cache")
+				r.postsCacheSorted = posts
+				r.postsCache.SetTo(postMap)
+			}
 		}
 
 		time.Sleep(10 * time.Second)

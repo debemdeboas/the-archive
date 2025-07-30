@@ -34,7 +34,7 @@ func (h *Handler) ServeNewDraftEditor(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var draft *Draft = nil
-	if cookie, err := r.Cookie(config.CookieDraftId); err == nil {
+	if cookie, err := r.Cookie(config.CookieDraftID); err == nil {
 		draftId := DraftId(cookie.Value)
 		draft, _ = h.repo.GetDraft(draftId)
 	}
@@ -47,7 +47,7 @@ func (h *Handler) ServeNewDraftEditor(w http.ResponseWriter, r *http.Request) {
 		}
 
 		http.SetCookie(w, &http.Cookie{
-			Name:  config.CookieDraftId,
+			Name:  config.CookieDraftID,
 			Value: string(draft.Id),
 			Path:  "/",
 		})

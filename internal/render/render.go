@@ -9,6 +9,7 @@ import (
 	"github.com/alecthomas/chroma/v2"
 	"github.com/alecthomas/chroma/v2/lexers"
 	"github.com/alecthomas/chroma/v2/styles"
+	"github.com/debemdeboas/the-archive/internal/cache"
 	"github.com/debemdeboas/the-archive/internal/config"
 	"github.com/debemdeboas/the-archive/internal/theme"
 	"github.com/gomarkdown/markdown"
@@ -54,6 +55,19 @@ func RenderMarkdown(md []byte, highlightTheme string) ([]byte, any) {
 	default:
 		return RenderMarkdownClassic(md, highlightTheme), nil
 	}
+}
+
+func RenderMarkdownCached(md []byte, contentHash, highlightTheme string) ([]byte, any) {
+	// Check cache first
+	if cached, found := cache.GetRenderedMarkdown(contentHash, highlightTheme); found {
+		return cached.HTML, cached.Extra
+	}
+
+	// Cache miss - render and cache the result
+	html, extra := RenderMarkdown(md, highlightTheme)
+	cache.SetRenderedMarkdown(contentHash, highlightTheme, html, extra)
+
+	return html, extra
 }
 
 func RenderMarkdownClassic(md []byte, highlightTheme string) []byte {

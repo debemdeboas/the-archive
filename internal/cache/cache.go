@@ -43,3 +43,28 @@ func (c *Cache[K, V]) SetTo(items map[K]V) {
 	defer c.mu.Unlock()
 	c.items = items
 }
+
+// Rendered markdown cache
+type RenderedContent struct {
+	HTML  []byte
+	Extra interface{}
+}
+
+var renderedMarkdownCache = NewCache[string, *RenderedContent]()
+
+func GetRenderedMarkdown(contentHash, syntaxTheme string) (*RenderedContent, bool) {
+	key := contentHash + ":" + syntaxTheme
+	return renderedMarkdownCache.Get(key)
+}
+
+func SetRenderedMarkdown(contentHash, syntaxTheme string, html []byte, extra interface{}) {
+	key := contentHash + ":" + syntaxTheme
+	renderedMarkdownCache.Set(key, &RenderedContent{
+		HTML:  html,
+		Extra: extra,
+	})
+}
+
+func ClearRenderedMarkdownCache() {
+	renderedMarkdownCache.Clear()
+}
