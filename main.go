@@ -356,13 +356,18 @@ func serveNewPostPreview(w http.ResponseWriter, r *http.Request) {
 
 func cacheIt(h http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set(config.HCacheControl, "no-cache")
-		w.Header().Set("Vary", "Cookie")
-
-		// Add etag header to response if it's a static file
+		// Cache static files
 		if hash, ok := cache.GetStaticHash(r.URL.Path); ok {
 			w.Header().Set(config.HCacheControl, "public, max-age=3600")
 			w.Header().Set(config.HETag, hash)
+		} else if r.URL.Path == "/" {
+			// Home page - enable caching with ETag validation
+			w.Header().Set(config.HCacheControl, "private, max-age=300, must-revalidate")
+			w.Header().Set("Vary", "Cookie")
+		} else {
+			// Default to no-cache for other pages
+			w.Header().Set(config.HCacheControl, "no-cache")
+			w.Header().Set("Vary", "Cookie")
 		}
 
 		h(w, r)
