@@ -96,9 +96,9 @@ func TestReloadPostsHashComparison(t *testing.T) {
 	// Track reload notifications
 	reloadCalled := false
 	var reloadedPostId model.PostId
-	repo.SetReloadNotifier(func(postId model.PostId) {
+	repo.SetReloadNotifier(func(postID model.PostId) {
 		reloadCalled = true
-		reloadedPostId = postId
+		reloadedPostId = postID
 	})
 
 	// Test 1: No changes should not trigger reload

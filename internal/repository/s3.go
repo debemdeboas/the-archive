@@ -47,9 +47,9 @@ func (r *S3PostRepository) SetReloadNotifier(notifier func(model.PostId)) {
 	r.reloadNotifier = notifier
 }
 
-func (r *S3PostRepository) notifyPostReload(postId model.PostId) {
+func (r *S3PostRepository) notifyPostReload(postID model.PostId) {
 	if r.reloadNotifier != nil {
-		r.reloadNotifier(postId)
+		r.reloadNotifier(postID)
 	}
 }
 

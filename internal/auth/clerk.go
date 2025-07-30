@@ -138,12 +138,12 @@ func (c *ClerkAuthProvider) HandleWebhookUser(w http.ResponseWriter, r *http.Req
 
 func (c *ClerkAuthProvider) EnforceUserAndGetId(w http.ResponseWriter, r *http.Request) (model.UserId, error) {
 	l := zerolog.Ctx(r.Context())
-	userId, err := c.GetUserIdFromSession(r)
+	userID, err := c.GetUserIdFromSession(r)
 	if err != nil {
 		l.Warn().Err(err).Msg("Unauthorized access attempt")
 		w.Header().Add("HHxRedirect", "/auth/login") // Assuming this header is defined elsewhere
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return "", err
 	}
-	return userId, nil
+	return userID, nil
 }

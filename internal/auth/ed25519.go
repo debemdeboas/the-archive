@@ -21,12 +21,12 @@ type Ed25519AuthProvider struct {
 	publicKey  ed25519.PublicKey
 	headerName string
 	cookieName string
-	userId     model.UserId
+	userID     model.UserId
 	challenge  []byte
 }
 
 // NewEd25519AuthProvider creates a new Ed25519-based auth provider
-func NewEd25519AuthProvider(publicKeyPEM string, headerName string, userId model.UserId) (*Ed25519AuthProvider, error) {
+func NewEd25519AuthProvider(publicKeyPEM string, headerName string, userID model.UserId) (*Ed25519AuthProvider, error) {
 	block, _ := pem.Decode([]byte(publicKeyPEM))
 	if block == nil {
 		return nil, errors.New("failed to parse PEM block containing the public key")
@@ -51,7 +51,7 @@ func NewEd25519AuthProvider(publicKeyPEM string, headerName string, userId model
 		publicKey:  publicKey,
 		headerName: headerName,
 		cookieName: "auth_token",
-		userId:     userId,
+		userID:     userID,
 		challenge:  challenge,
 	}, nil
 }
@@ -91,7 +91,7 @@ func (p *Ed25519AuthProvider) WithHeaderAuthorization() func(http.Handler) http.
 				if ed25519.Verify(p.publicKey, p.challenge, signature) {
 					// Signature valid, set user ID in context and proceed
 					ctx := r.Context()
-					ctx = ContextWithUserId(ctx, p.userId)
+					ctx = ContextWithUserId(ctx, p.userID)
 					next.ServeHTTP(w, r.WithContext(ctx))
 					return
 				}
@@ -106,12 +106,12 @@ func (p *Ed25519AuthProvider) WithHeaderAuthorization() func(http.Handler) http.
 // GetUserIdFromSession extracts the user ID from the request
 func (p *Ed25519AuthProvider) GetUserIdFromSession(r *http.Request) (model.UserId, error) {
 	l := zerolog.Ctx(r.Context())
-	userId := r.Context().Value(ContextKeyUserId)
-	if userId == nil {
+	userID := r.Context().Value(ContextKeyUserId)
+	if userID == nil {
 		l.Warn().Msg("No user ID found in context")
 		return "", errors.New("no user ID in context")
 	}
-	return userId.(model.UserId), nil
+	return userID.(model.UserId), nil
 }
 
 // HandleWebhookUser is a no-op for this simple provider
@@ -138,7 +138,7 @@ func (p *Ed25519AuthProvider) RefreshChallenge() error {
 // EnforceUserAndGetId enforces the user and returns the user ID
 func (p *Ed25519AuthProvider) EnforceUserAndGetId(w http.ResponseWriter, r *http.Request) (model.UserId, error) {
 	l := zerolog.Ctx(r.Context())
-	userId, err := p.GetUserIdFromSession(r)
+	userID, err := p.GetUserIdFromSession(r)
 	if err != nil {
 		l.Warn().Err(err).Msg("Unauthorized access attempt")
 
@@ -148,5 +148,5 @@ func (p *Ed25519AuthProvider) EnforceUserAndGetId(w http.ResponseWriter, r *http
 		return "", err
 	}
 
-	return userId, nil
+	return userID, nil
 }

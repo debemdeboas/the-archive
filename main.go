@@ -112,7 +112,7 @@ func main() {
 			return
 		}
 
-		htmlContent, _ := render.RenderMarkdown(post.Markdown, theme.GetSyntaxThemeFromRequest(r))
+		htmlContent, _ := render.RenderMarkdownCached(post.Markdown, post.MDContentHash, theme.GetSyntaxThemeFromRequest(r))
 
 		title := post.Title
 
@@ -125,7 +125,7 @@ func main() {
 	mux.HandleFunc(config.PostsUrlPath, servePost)
 	mux.HandleFunc("/new/post", func(w http.ResponseWriter, r *http.Request) {
 		http.SetCookie(w, &http.Cookie{
-			Name:  config.CookieDraftId,
+			Name:  config.CookieDraftID,
 			Value: "",
 			Path:  "/",
 		})
@@ -162,7 +162,7 @@ func main() {
 
 	mux.HandleFunc("/api/posts/{id}", func(w http.ResponseWriter, r *http.Request) {
 		l := zerolog.Ctx(r.Context())
-		usrId, err := ed25519AuthProvider.EnforceUserAndGetId(w, r)
+		usrID, err := ed25519AuthProvider.EnforceUserAndGetId(w, r)
 		if err != nil {
 			l.Error().
 				Err(err).
@@ -175,9 +175,9 @@ func main() {
 
 		switch r.Method {
 		case http.MethodPost:
-			draftId := r.PathValue("id")
+			draftID := r.PathValue("id")
 
-			if _, err := editorRepo.GetDraft(editor.DraftId(draftId)); err != nil {
+			if _, err := editorRepo.GetDraft(editor.DraftId(draftID)); err != nil {
 				http.Error(w, "Draft not found", http.StatusNotFound)
 				return
 			}
@@ -186,7 +186,7 @@ func main() {
 
 			post := postRepository.NewPost()
 			post.Markdown = []byte(content)
-			post.Owner = usrId
+			post.Owner = usrID
 			post.Path = string(post.Id)
 
 			frontMatter := util.GetFrontMatter(post.Markdown)
@@ -205,10 +205,10 @@ func main() {
 				return
 			}
 		case http.MethodPut:
-			postId := r.PathValue("id")
+			postID := r.PathValue("id")
 			content := r.FormValue("content")
 
-			post, err := postRepository.ReadPost(postId)
+			post, err := postRepository.ReadPost(postID)
 			if post == nil {
 				http.Error(w, "Post not found", http.StatusNotFound)
 				return
@@ -285,18 +285,18 @@ func ServeEditPost(w http.ResponseWriter, r *http.Request) {
 			http.Redirect(w, r, "/auth/login?redirect="+url.QueryEscape(r.URL.String()), http.StatusFound)
 			return
 		}
-		// Redirect to /auth/login if no userId (unauthorized)
+		// Redirect to /auth/login if no userID (unauthorized)
 		w.Header().Add(config.HHxRedirect, "/auth/login?redirect="+url.QueryEscape(r.URL.String()))
 		return
 	}
 
-	postId := strings.TrimPrefix(r.URL.Path, "/edit/post/")
-	if postId == "" {
+	postID := strings.TrimPrefix(r.URL.Path, "/edit/post/")
+	if postID == "" {
 		http.NotFound(w, r)
 		return
 	}
 
-	post, err := postRepository.ReadPost(postId)
+	post, err := postRepository.ReadPost(postID)
 	if err != nil {
 		http.NotFound(w, r)
 		return
@@ -331,8 +331,8 @@ func midWithDraftSaving(next http.HandlerFunc) http.HandlerFunc {
 
 func midWithPostSaving(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		postId := strings.TrimPrefix(r.URL.Path, "/edit/post/")
-		if postId == "" {
+		postID := strings.TrimPrefix(r.URL.Path, "/edit/post/")
+		if postID == "" {
 			http.NotFound(w, r)
 			return
 		}
@@ -407,20 +407,20 @@ func serveIndex(w http.ResponseWriter, r *http.Request) {
 }
 
 func servePost(w http.ResponseWriter, r *http.Request) {
-	postId := strings.TrimPrefix(r.URL.Path, config.PostsUrlPath)
-	if postId == "" {
+	postID := strings.TrimPrefix(r.URL.Path, config.PostsUrlPath)
+	if postID == "" {
 		http.NotFound(w, r)
 		return
 	}
 
-	post, err := postRepository.ReadPost(postId)
+	post, err := postRepository.ReadPost(postID)
 	if err != nil {
 		http.NotFound(w, r)
 		return
 	}
 
-	htmlContent, extra := render.RenderMarkdown(post.Markdown, theme.GetSyntaxThemeFromRequest(r))
-	post.Path = postId
+	htmlContent, extra := render.RenderMarkdownCached(post.Markdown, post.MDContentHash, theme.GetSyntaxThemeFromRequest(r))
+	post.Path = postID
 	post.Content = template.HTML(htmlContent)
 	post.Info = extra.(*mast.TitleData)
 
@@ -512,8 +512,8 @@ func serveSyntaxThemeGetTheme(w http.ResponseWriter, r *http.Request) {
 func eventsHandler(w http.ResponseWriter, r *http.Request) {
 	l := zerolog.Ctx(r.Context())
 
-	postId := r.URL.Query().Get("post")
-	if postId == "" {
+	postID := r.URL.Query().Get("post")
+	if postID == "" {
 		http.Error(w, "Post parameter required", http.StatusBadRequest)
 		return
 	}
@@ -535,7 +535,7 @@ func eventsHandler(w http.ResponseWriter, r *http.Request) {
 
 	client := &sse.Client{
 		Msg:    make(chan string),
-		PostId: model.PostId(postId),
+		PostId: model.PostId(postID),
 	}
 
 	clients.Add(client)
@@ -563,6 +563,6 @@ func eventsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func handleReloadPost(postId model.PostId) {
-	go clients.Broadcast(postId, "reload")
+func handleReloadPost(postID model.PostId) {
+	go clients.Broadcast(postID, "reload")
 }

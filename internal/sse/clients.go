@@ -35,11 +35,11 @@ func (s *SSEClients) Delete(client *Client) {
 	close(client.Msg)
 }
 
-func (s *SSEClients) Broadcast(postId model.PostId, msg string) {
+func (s *SSEClients) Broadcast(postID model.PostId, msg string) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	for client := range s.clients {
-		if client.PostId == postId {
+		if client.PostId == postID {
 			select {
 			case client.Msg <- msg:
 			default:

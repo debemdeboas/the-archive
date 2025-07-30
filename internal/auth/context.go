@@ -10,15 +10,15 @@ import (
 type ContextKey string
 
 // ContextKeyUserId is the key for user ID in request context
-const ContextKeyUserId ContextKey = "userId"
+const ContextKeyUserId ContextKey = "userID"
 
 // ContextWithUserId returns a new context with the user ID set
-func ContextWithUserId(ctx context.Context, userId model.UserId) context.Context {
-	return context.WithValue(ctx, ContextKeyUserId, userId)
+func ContextWithUserId(ctx context.Context, userID model.UserId) context.Context {
+	return context.WithValue(ctx, ContextKeyUserId, userID)
 }
 
 // UserIdFromContext extracts the user ID from context
 func UserIdFromContext(ctx context.Context) (model.UserId, bool) {
-	userId, ok := ctx.Value(ContextKeyUserId).(model.UserId)
-	return userId, ok
+	userID, ok := ctx.Value(ContextKeyUserId).(model.UserId)
+	return userID, ok
 }

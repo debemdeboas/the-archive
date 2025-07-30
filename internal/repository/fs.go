@@ -33,9 +33,9 @@ func (r *FSPostRepository) SetReloadNotifier(notifier func(model.PostId)) {
 	r.reloadNotifier = notifier
 }
 
-func (r *FSPostRepository) notifyPostReload(postId model.PostId) {
+func (r *FSPostRepository) notifyPostReload(postID model.PostId) {
 	if r.reloadNotifier != nil {
-		r.reloadNotifier(postId)
+		r.reloadNotifier(postID)
 	}
 }
 
