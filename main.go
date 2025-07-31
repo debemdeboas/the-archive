@@ -52,6 +52,11 @@ func main() {
 		log.Error().Err(err).Msg("Error loading .env file")
 	}
 
+	// Load configuration
+	if err := config.LoadConfig("config.yaml"); err != nil {
+		log.Error().Err(err).Msg("Error loading config.yaml, using defaults")
+	}
+
 	db.SetLogger(log)
 	if err := Db.InitDb(); err != nil {
 		log.Fatal().Err(err).Msg("Error initializing database")
@@ -125,120 +130,169 @@ func main() {
 
 	mux.Handle(config.StaticUrlPath, http.StripPrefix(config.StaticUrlPath, http.FileServer(http.FS(static))))
 	mux.HandleFunc(config.PostsUrlPath, servePost)
-	mux.HandleFunc("/new/post", func(w http.ResponseWriter, r *http.Request) {
-		http.SetCookie(w, &http.Cookie{
-			Name:  config.CookieDraftID,
-			Value: "",
-			Path:  "/",
+	// Editor routes - only register if editor is enabled
+	if config.AppConfig.Features.Editor.Enabled {
+		mux.HandleFunc("/new/post", func(w http.ResponseWriter, r *http.Request) {
+			http.SetCookie(w, &http.Cookie{
+				Name:  config.CookieDraftID,
+				Value: "",
+				Path:  "/",
+			})
+			w.Header().Add(config.HHxRedirect, "/new/post/edit")
+			http.Redirect(w, r, "/new/post/edit", http.StatusFound)
 		})
-		w.Header().Add(config.HHxRedirect, "/new/post/edit")
-		http.Redirect(w, r, "/new/post/edit", http.StatusFound)
-	})
-	mux.HandleFunc("/theme/toggle", serveThemePostToggle)
+	}
+
+	// Theme toggle - only register if theme switching is allowed
+	if config.AppConfig.Theme.AllowSwitching {
+		mux.HandleFunc("/theme/toggle", serveThemePostToggle)
+	} else {
+		// Return 404 for disabled theme switching
+		mux.HandleFunc("/theme/toggle", func(w http.ResponseWriter, r *http.Request) {
+			http.NotFound(w, r)
+		})
+	}
 	mux.HandleFunc("/syntax-theme/set", serveSyntaxThemePostSet)
 	mux.HandleFunc("/syntax-theme/{theme}", serveSyntaxThemeGetTheme)
 	mux.HandleFunc("/sse", eventsHandler)
 	mux.HandleFunc("/", serveIndex)
 
-	mux.Handle(
-		"/partials/post/preview",
-		http.HandlerFunc(midWithPostSaving(serveNewPostPreview)),
-	)
+	// More editor routes - only register if editor is enabled
+	if config.AppConfig.Features.Editor.Enabled {
+		// Preview routes - only register if live preview is enabled
+		if config.AppConfig.Features.Editor.LivePreview {
+			mux.Handle(
+				"/partials/post/preview",
+				http.HandlerFunc(midWithPostSaving(serveNewPostPreview)),
+			)
 
-	mux.Handle(
-		"/partials/draft/preview",
-		http.HandlerFunc(midWithDraftSaving(serveNewPostPreview)),
-	)
-
-	mux.Handle(
-		"/new/post/edit",
-		http.HandlerFunc(editorHandler.ServeNewDraftEditor),
-	)
-
-	mux.Handle(
-		"/edit/post/",
-		http.HandlerFunc(ServeEditPost),
-	)
-
-	mux.HandleFunc("/webhook/user", clerkAuthProvider.HandleWebhookUser)
-
-	mux.HandleFunc("/api/posts/{id}", func(w http.ResponseWriter, r *http.Request) {
-		l := zerolog.Ctx(r.Context())
-		usrID, err := ed25519AuthProvider.EnforceUserAndGetId(w, r)
-		if err != nil {
-			l.Error().
-				Err(err).
-				Str("method", r.Method).
-				Str("path", r.URL.Path).
-				Msg("Unauthorized access attempt")
-			http.Error(w, "Unauthorized", http.StatusUnauthorized)
-			return
+			mux.Handle(
+				"/partials/draft/preview",
+				http.HandlerFunc(midWithDraftSaving(serveNewPostPreview)),
+			)
+		} else {
+			// Return 404 for disabled preview routes
+			previewDisabledHandler := func(w http.ResponseWriter, r *http.Request) {
+				http.NotFound(w, r)
+			}
+			mux.HandleFunc("/partials/post/preview", previewDisabledHandler)
+			mux.HandleFunc("/partials/draft/preview", previewDisabledHandler)
 		}
 
-		switch r.Method {
-		case http.MethodPost:
-			draftID := r.PathValue("id")
+		mux.Handle(
+			"/new/post/edit",
+			http.HandlerFunc(editorHandler.ServeNewDraftEditor),
+		)
 
-			if _, err := editorRepo.GetDraft(editor.DraftId(draftID)); err != nil {
-				http.Error(w, "Draft not found", http.StatusNotFound)
-				return
-			}
-
-			content := r.FormValue("content")
-
-			post := postRepository.NewPost()
-			post.Markdown = []byte(content)
-			post.Owner = usrID
-			post.Path = string(post.Id)
-
-			frontMatter := util.GetFrontMatter(post.Markdown)
-			if frontMatter != nil && frontMatter.Title != "" {
-				post.Title = frontMatter.Title
-			} else {
-				post.Title = "Untitled - " + post.CreatedDate.Format("2006-01-02")
-			}
-
-			if err := postRepository.SavePost(post); err != nil {
-				l.Error().
-					Err(err).
-					Str("post_id", string(post.Id)).
-					Msg("Failed to save post")
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-		case http.MethodPut:
-			postID := r.PathValue("id")
-			content := r.FormValue("content")
-
-			post, err := postRepository.ReadPost(postID)
-			if post == nil {
-				http.Error(w, "Post not found", http.StatusNotFound)
-				return
-			} else if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-
-			post.Markdown = []byte(content)
-			frontMatter := util.GetFrontMatter(post.Markdown)
-			if frontMatter != nil && frontMatter.Title != "" && post.Title != frontMatter.Title {
-				post.Title = frontMatter.Title
-			}
-
-			if err := postRepository.SetPostContent(post); err != nil {
-				l.Error().
-					Err(err).
-					Str("post_id", string(post.Id)).
-					Msg("Failed to save post")
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-		default:
-			http.Error(w, config.HTTPErrMethodNotAllowed, http.StatusMethodNotAllowed)
+		mux.Handle(
+			"/edit/post/",
+			http.HandlerFunc(ServeEditPost),
+		)
+	} else {
+		// Return 404 for disabled editor routes
+		editorDisabledHandler := func(w http.ResponseWriter, r *http.Request) {
+			http.NotFound(w, r)
 		}
-	})
+		mux.HandleFunc("/new/post", editorDisabledHandler)
+		mux.HandleFunc("/partials/post/preview", editorDisabledHandler)
+		mux.HandleFunc("/partials/draft/preview", editorDisabledHandler)
+		mux.HandleFunc("/new/post/edit", editorDisabledHandler)
+		mux.HandleFunc("/edit/post/", editorDisabledHandler)
+	}
 
-	auth.RegisterEd25519AuthRoutes(mux, ed25519AuthProvider.(*auth.Ed25519AuthProvider), &content)
+	// Authentication webhook - only register if authentication is enabled
+	if config.AppConfig.Features.Authentication.Enabled {
+		mux.HandleFunc("/webhook/user", clerkAuthProvider.HandleWebhookUser)
+	}
+
+	// Post creation/editing API - only register if editor is enabled
+	if config.AppConfig.Features.Editor.Enabled {
+		mux.HandleFunc("/api/posts/{id}", func(w http.ResponseWriter, r *http.Request) {
+			l := zerolog.Ctx(r.Context())
+			usrID, err := ed25519AuthProvider.EnforceUserAndGetId(w, r)
+			if err != nil {
+				l.Error().
+					Err(err).
+					Str("method", r.Method).
+					Str("path", r.URL.Path).
+					Msg("Unauthorized access attempt")
+				http.Error(w, "Unauthorized", http.StatusUnauthorized)
+				return
+			}
+
+			switch r.Method {
+			case http.MethodPost:
+				draftID := r.PathValue("id")
+
+				if _, err := editorRepo.GetDraft(editor.DraftId(draftID)); err != nil {
+					http.Error(w, "Draft not found", http.StatusNotFound)
+					return
+				}
+
+				content := r.FormValue("content")
+
+				post := postRepository.NewPost()
+				post.Markdown = []byte(content)
+				post.Owner = usrID
+				post.Path = string(post.Id)
+
+				frontMatter := util.GetFrontMatter(post.Markdown)
+				if frontMatter != nil && frontMatter.Title != "" {
+					post.Title = frontMatter.Title
+				} else {
+					post.Title = "Untitled - " + post.CreatedDate.Format("2006-01-02")
+				}
+
+				if err := postRepository.SavePost(post); err != nil {
+					l.Error().
+						Err(err).
+						Str("post_id", string(post.Id)).
+						Msg("Failed to save post")
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					return
+				}
+			case http.MethodPut:
+				postID := r.PathValue("id")
+				content := r.FormValue("content")
+
+				post, err := postRepository.ReadPost(postID)
+				if post == nil {
+					http.Error(w, "Post not found", http.StatusNotFound)
+					return
+				} else if err != nil {
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					return
+				}
+
+				post.Markdown = []byte(content)
+				frontMatter := util.GetFrontMatter(post.Markdown)
+				if frontMatter != nil && frontMatter.Title != "" && post.Title != frontMatter.Title {
+					post.Title = frontMatter.Title
+				}
+
+				if err := postRepository.SetPostContent(post); err != nil {
+					l.Error().
+						Err(err).
+						Str("post_id", string(post.Id)).
+						Msg("Failed to save post")
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					return
+				}
+			default:
+				http.Error(w, config.HTTPErrMethodNotAllowed, http.StatusMethodNotAllowed)
+			}
+		})
+	} else {
+		// Return 404 for disabled API routes
+		mux.HandleFunc("/api/posts/{id}", func(w http.ResponseWriter, r *http.Request) {
+			http.NotFound(w, r)
+		})
+	}
+
+	// Authentication routes - only register if authentication is enabled
+	if config.AppConfig.Features.Authentication.Enabled {
+		auth.RegisterEd25519AuthRoutes(mux, ed25519AuthProvider.(*auth.Ed25519AuthProvider), &content)
+	}
 
 	go postRepository.Init()
 	postRepository.SetReloadNotifier(handleReloadPost)
@@ -251,12 +305,18 @@ func main() {
 		}
 	})
 
-	authMux := ed25519AuthProvider.WithHeaderAuthorization()(securedMux)
-	authHandlerFunc := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		authMux.ServeHTTP(w, r)
-	})
+	// Apply authentication middleware only if authentication is enabled
+	var finalHandler http.HandlerFunc
+	if config.AppConfig.Features.Authentication.Enabled {
+		authMux := ed25519AuthProvider.WithHeaderAuthorization()(securedMux)
+		finalHandler = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			authMux.ServeHTTP(w, r)
+		})
+	} else {
+		finalHandler = securedMux
+	}
 
-	log.Fatal().Err(http.ListenAndServe(config.ServerAddr+":"+config.ServerPort, loggingMiddleware(cacheIt(authHandlerFunc)))).Msg("Server closed")
+	log.Fatal().Err(http.ListenAndServe(config.AppConfig.Server.Host+":"+config.AppConfig.Server.Port, loggingMiddleware(cacheIt(finalHandler)))).Msg("Server closed")
 }
 
 func loggingMiddleware(next http.Handler) http.Handler {
@@ -454,7 +514,7 @@ func servePost(w http.ResponseWriter, r *http.Request) {
 func serveThemePostToggle(w http.ResponseWriter, r *http.Request) {
 	currentTheme := theme.GetThemeFromRequest(r)
 
-	newTheme := config.DefaultTheme
+	newTheme := config.AppConfig.Theme.Default
 	if currentTheme == config.DarkTheme {
 		newTheme = config.LightTheme
 	}
