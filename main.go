@@ -41,7 +41,6 @@ var postRepository repository.PostRepository = repository.NewDbPostRepository(Db
 var editorRepo editor.Repository = editor.NewMemoryRepository()
 var editorHandler = editor.NewHandler(editorRepo, clients, &content)
 
-var clerkAuthProvider auth.AuthProvider
 var ed25519AuthProvider auth.AuthProvider
 
 var log = logger.Logger()
@@ -65,7 +64,6 @@ func main() {
 	repository.SetLogger(log)
 	auth.SetLogger(log)
 
-	clerkAuthProvider = auth.NewClerkAuthProvider(os.Getenv("CLERK_API"))
 	ed25519AuthProvider, err = auth.NewEd25519AuthProvider(
 		os.Getenv("ED25519_PUBKEY"),
 		"Authorization",
@@ -130,7 +128,6 @@ func main() {
 
 	mux.Handle(config.StaticUrlPath, http.StripPrefix(config.StaticUrlPath, http.FileServer(http.FS(static))))
 	mux.HandleFunc(config.PostsUrlPath, servePost)
-	// Editor routes - only register if editor is enabled
 	if config.AppConfig.Features.Editor.Enabled {
 		mux.HandleFunc("/new/post", func(w http.ResponseWriter, r *http.Request) {
 			http.SetCookie(w, &http.Cookie{
@@ -143,11 +140,9 @@ func main() {
 		})
 	}
 
-	// Theme toggle - only register if theme switching is allowed
 	if config.AppConfig.Theme.AllowSwitching {
 		mux.HandleFunc("/theme/toggle", serveThemePostToggle)
 	} else {
-		// Return 404 for disabled theme switching
 		mux.HandleFunc("/theme/toggle", func(w http.ResponseWriter, r *http.Request) {
 			http.NotFound(w, r)
 		})
@@ -157,9 +152,7 @@ func main() {
 	mux.HandleFunc("/sse", eventsHandler)
 	mux.HandleFunc("/", serveIndex)
 
-	// More editor routes - only register if editor is enabled
 	if config.AppConfig.Features.Editor.Enabled {
-		// Preview routes - only register if live preview is enabled
 		if config.AppConfig.Features.Editor.LivePreview {
 			mux.Handle(
 				"/partials/post/preview",
@@ -198,11 +191,6 @@ func main() {
 		mux.HandleFunc("/partials/draft/preview", editorDisabledHandler)
 		mux.HandleFunc("/new/post/edit", editorDisabledHandler)
 		mux.HandleFunc("/edit/post/", editorDisabledHandler)
-	}
-
-	// Authentication webhook - only register if authentication is enabled
-	if config.AppConfig.Features.Authentication.Enabled {
-		mux.HandleFunc("/webhook/user", clerkAuthProvider.HandleWebhookUser)
 	}
 
 	// Post creation/editing API - only register if editor is enabled
@@ -398,7 +386,6 @@ func midWithPostSaving(next http.HandlerFunc) http.HandlerFunc {
 			http.NotFound(w, r)
 			return
 		}
-		// The content is at r.FormValue("content")
 		next.ServeHTTP(w, r)
 	}
 }

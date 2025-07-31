@@ -78,12 +78,12 @@ func processFile(dirPath string, file os.DirEntry, repo repository.PostRepositor
 	modTime := fileInfo.ModTime()
 
 	// Set creation and modification dates
-	createdDate := modTime
+	createdDate := modTime.UTC()
 	if frontMatter != nil {
-		createdDate = frontMatter.Date
+		createdDate = frontMatter.Date.UTC()
 	}
 
-	modifiedDate := modTime
+	modifiedDate := modTime.UTC()
 
 	// Create a new post struct
 	post := &model.Post{

@@ -1,6 +1,7 @@
 package repository
 
 import (
+	"database/sql"
 	"fmt"
 	"slices"
 	"time"
@@ -47,39 +48,35 @@ func (r *DbPostRepository) Init() {
 }
 
 func (r *DbPostRepository) GetLatestModifiedTime() (*time.Time, error) {
-	var latestTimeStr *string
+	var latestTimeStr sql.NullString
 	row := r.db.Get().QueryRow(`SELECT MAX(modified_at) FROM posts`)
 	err := row.Scan(&latestTimeStr)
 	if err != nil {
-		return nil, fmt.Errorf("error querying latest modified time: %w", err)
+		return nil, fmt.Errorf("error scanning latest modified time: %w", err)
 	}
 
-	if latestTimeStr == nil {
-		return nil, nil // No posts exist
+	if !latestTimeStr.Valid {
+		return nil, nil // It was NULL, so no posts or no valid timestamps.
 	}
 
-	// Try multiple time formats that SQLite might use
-	var latestTime time.Time
+	// The go-sqlite3 driver returns a string for MAX(), so we must parse it.
+	// It can be in a format with a space separator.
 	timeFormats := []string{
-		time.RFC3339Nano,
-		"2006-01-02 15:04:05.999999999-07:00",
-		"2006-01-02 15:04:05-07:00",
-		time.RFC3339,
+		"2006-01-02 15:04:05.999999999-07:00", // Space separator with timezone
+		time.RFC3339Nano,                      // 'T' separator with timezone
+		time.RFC3339,                          // 'T' separator, no nanos
 	}
 
+	var latestTime time.Time
 	var parseErr error
 	for _, format := range timeFormats {
-		latestTime, parseErr = time.Parse(format, *latestTimeStr)
+		latestTime, parseErr = time.Parse(format, latestTimeStr.String)
 		if parseErr == nil {
-			break
+			return &latestTime, nil
 		}
 	}
 
-	if parseErr != nil {
-		return nil, fmt.Errorf("error parsing latest modified time '%s': %w", *latestTimeStr, parseErr)
-	}
-
-	return &latestTime, nil
+	return nil, fmt.Errorf("error parsing latest modified time '%s' with any known format: %w", latestTimeStr.String, parseErr)
 }
 
 func (r *DbPostRepository) GetPosts() ([]model.Post, map[string]*model.Post, error) {
@@ -247,7 +244,7 @@ func (r *DbPostRepository) SetPostContent(post *model.Post) error {
 	// Save the post
 	res, err := r.db.Exec(
 		`UPDATE posts SET title = ?, content = ?, md_content_hash = ?, modified_at = ? WHERE id = ?`,
-		post.Title, compressed, post.MDContentHash, time.Now(), post.Id,
+		post.Title, compressed, post.MDContentHash, time.Now().UTC(), post.Id,
 	)
 
 	if err != nil {
