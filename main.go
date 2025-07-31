@@ -43,26 +43,31 @@ var editorHandler = editor.NewHandler(editorRepo, clients, &content)
 
 var ed25519AuthProvider auth.AuthProvider
 
-var log = logger.Logger()
-
 func main() {
 	err := godotenv.Load()
 	if err != nil {
-		log.Error().Err(err).Msg("Error loading .env file")
+		// Can't use logger yet, so use stderr
+		fmt.Fprintf(os.Stderr, "Error loading .env file: %v\n", err)
 	}
 
-	// Load configuration
+	// Load configuration first
 	if err := config.LoadConfig("config.yaml"); err != nil {
-		log.Error().Err(err).Msg("Error loading config.yaml, using defaults")
+		// Can't use logger yet, so use stderr
+		fmt.Fprintf(os.Stderr, "Error loading config.yaml, using defaults: %v\n", err)
 	}
 
+	// Now create the logger with the configured level
+	log := logger.New(config.AppConfig.Logging.Level)
+
+	// Set logger for all packages
+	config.SetLogger(log)
 	db.SetLogger(log)
+	repository.SetLogger(log)
+	auth.SetLogger(log)
+
 	if err := Db.InitDb(); err != nil {
 		log.Fatal().Err(err).Msg("Error initializing database")
 	}
-
-	repository.SetLogger(log)
-	auth.SetLogger(log)
 
 	ed25519AuthProvider, err = auth.NewEd25519AuthProvider(
 		os.Getenv("ED25519_PUBKEY"),
@@ -235,6 +240,7 @@ func main() {
 					l.Error().
 						Err(err).
 						Str("post_id", string(post.Id)).
+						Str("user_id", string(usrID)).
 						Msg("Failed to save post")
 					http.Error(w, err.Error(), http.StatusInternalServerError)
 					return
@@ -262,7 +268,8 @@ func main() {
 					l.Error().
 						Err(err).
 						Str("post_id", string(post.Id)).
-						Msg("Failed to save post")
+						Str("user_id", string(usrID)).
+						Msg("Failed to set post content")
 					http.Error(w, err.Error(), http.StatusInternalServerError)
 					return
 				}
@@ -304,27 +311,27 @@ func main() {
 		finalHandler = securedMux
 	}
 
-	log.Fatal().Err(http.ListenAndServe(config.AppConfig.Server.Host+":"+config.AppConfig.Server.Port, loggingMiddleware(cacheIt(finalHandler)))).Msg("Server closed")
+	log.Fatal().Err(http.ListenAndServe(config.AppConfig.Server.Host+":"+config.AppConfig.Server.Port, loggingMiddleware(log)(cacheIt(finalHandler)))).Msg("Server closed")
 }
 
-func loggingMiddleware(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		start := time.Now()
+func loggingMiddleware(log zerolog.Logger) func(http.Handler) http.Handler {
+	return func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			start := time.Now()
+			r = r.WithContext(log.WithContext(r.Context()))
 
-		l := logger.Logger()
-		r = r.WithContext(l.WithContext(r.Context()))
+			defer func() {
+				log.Debug().
+					Str("method", r.Method).
+					Str("url", r.URL.RequestURI()).
+					Str("user_agent", r.UserAgent()).
+					Dur("elapsed_ms", time.Since(start)).
+					Msg("incoming request")
+			}()
 
-		defer func() {
-			l.Info().
-				Str("method", r.Method).
-				Str("url", r.URL.RequestURI()).
-				Str("user_agent", r.UserAgent()).
-				Dur("elapsed_ms", time.Since(start)).
-				Msg("incoming request")
-		}()
-
-		next.ServeHTTP(w, r)
-	})
+			next.ServeHTTP(w, r)
+		})
+	}
 }
 
 func ServeEditPost(w http.ResponseWriter, r *http.Request) {
@@ -354,6 +361,8 @@ func ServeEditPost(w http.ResponseWriter, r *http.Request) {
 
 	// Check ownership
 	if usrId != post.Owner {
+		l := zerolog.Ctx(r.Context())
+		l.Warn().Str("user_id", string(usrId)).Str("post_id", postID).Msg("Unauthorized attempt to edit post")
 		w.Header().Add(config.HHxRedirect, r.Header.Get("Referer"))
 		return
 	}

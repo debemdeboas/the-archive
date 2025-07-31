@@ -5,16 +5,17 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"html/template"
-	"log"
 	"net/http"
 	"strings"
 
 	"github.com/debemdeboas/the-archive/internal/config"
+	"github.com/rs/zerolog"
 )
 
 // Ed25519ChallengeHandler creates an HTTP handler that serves the current challenge
 func Ed25519ChallengeHandler(provider *Ed25519AuthProvider) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		l := zerolog.Ctx(r.Context())
 		switch r.Method {
 		case http.MethodGet:
 			// Return the current challenge for signing
@@ -29,6 +30,7 @@ func Ed25519ChallengeHandler(provider *Ed25519AuthProvider) http.HandlerFunc {
 		case http.MethodPost:
 			// Generate a new challenge
 			if err := provider.RefreshChallenge(); err != nil {
+				l.Error().Err(err).Msg("Failed to refresh challenge")
 				http.Error(w, "Failed to refresh challenge", http.StatusInternalServerError)
 				return
 			}
@@ -96,6 +98,7 @@ func Ed25519VerifyHandler(provider *Ed25519AuthProvider) http.HandlerFunc {
 // Ed25519AuthPageHandler serves the authentication page
 func Ed25519AuthPageHandler(provider *Ed25519AuthProvider, tmpl *template.Template) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		l := zerolog.Ctx(r.Context())
 		redirectURL := r.URL.Query().Get("redirect")
 		if redirectURL == "" {
 			redirectURL = "/"
@@ -120,7 +123,7 @@ func Ed25519AuthPageHandler(provider *Ed25519AuthProvider, tmpl *template.Templa
 
 		err := tmpl.ExecuteTemplate(w, "ed25519_auth", data)
 		if err != nil {
-			log.Println("Failed to render auth template:", err)
+			l.Error().Err(err).Msg("Failed to render auth template")
 			http.Error(w, "Internal server error", http.StatusInternalServerError)
 		}
 	}

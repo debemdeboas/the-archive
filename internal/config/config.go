@@ -7,8 +7,15 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/rs/zerolog"
 	"gopkg.in/yaml.v3"
 )
+
+var configLogger zerolog.Logger
+
+func SetLogger(l zerolog.Logger) {
+	configLogger = l
+}
 
 // Config represents the complete configuration structure
 type Config struct {
@@ -19,6 +26,11 @@ type Config struct {
 	Features FeaturesConfig `yaml:"features"`
 	Meta     MetaConfig     `yaml:"meta"`
 	Social   SocialConfig   `yaml:"social"`
+	Logging  LoggingConfig  `yaml:"logging"`
+}
+
+type LoggingConfig struct {
+	Level string `yaml:"level" default:"info"`
 }
 
 type SiteConfig struct {
@@ -93,7 +105,7 @@ func LoadConfig(path string) error {
 	data, err := os.ReadFile(path)
 	if err != nil {
 		// If file doesn't exist, just use defaults
-		fmt.Printf("Config file %s not found, using defaults\n", path)
+		configLogger.Info().Str("path", path).Msg("Config file not found, using defaults")
 		AppConfig = config
 		return nil
 	}
@@ -165,7 +177,10 @@ func applyDefaults(config interface{}) {
 				field.Set(slice)
 			}
 		default:
-			fmt.Printf("Warning: Unsupported field type %s for field %s, default not applied\n", field.Kind(), fieldType.Name)
+			configLogger.Warn().
+				Str("field_name", fieldType.Name).
+				Str("field_type", field.Kind().String()).
+				Msg("Unsupported field type for default value")
 		}
 	}
 }

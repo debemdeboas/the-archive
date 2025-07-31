@@ -51,7 +51,7 @@ CREATE TABLE IF NOT EXISTS posts (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );`)
 
-	dbLogger.Info().Any("db_result", res).Msg("Database initialized")
+	dbLogger.Debug().Any("db_result", res).Msg("Database initialized")
 	return err
 }
 
@@ -67,11 +67,11 @@ func (s *SQLite) Close() error {
 }
 
 func (s *SQLite) Query(query string, args ...interface{}) (*sql.Rows, error) {
-	dbLogger.Info().Str("query", query).Msg("Query")
+	dbLogger.Debug().Str("query", query).Msg("Query")
 	return s.conn.Query(query, args...)
 }
 
 func (s *SQLite) Exec(query string, args ...interface{}) (sql.Result, error) {
-	dbLogger.Info().Str("query", query).Msg("Exec")
+	dbLogger.Debug().Str("query", query).Msg("Exec")
 	return s.conn.Exec(query, args...)
 }

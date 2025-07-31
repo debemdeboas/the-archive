@@ -159,7 +159,7 @@ func (r *DbPostRepository) ReloadPosts() {
 			continue
 		}
 
-		repoLogger.Info().Msg("Posts may have changed, performing full reload")
+		repoLogger.Debug().Msg("Posts may have changed, performing full reload")
 
 		// Something changed, do the full reload
 		posts, postMap, err := r.GetPosts()
@@ -251,7 +251,7 @@ func (r *DbPostRepository) SetPostContent(post *model.Post) error {
 		return fmt.Errorf("error saving post: %w", err)
 	}
 
-	fmt.Println(res)
+	repoLogger.Debug().Interface("result", res).Msg("Post content set")
 
 	return nil
 }
@@ -276,7 +276,7 @@ func (r *DbPostRepository) SavePost(post *model.Post) error {
 		return fmt.Errorf("error saving post: %w", err)
 	}
 
-	fmt.Println(res)
+	repoLogger.Debug().Interface("result", res).Msg("Post saved")
 
 	return nil
 }

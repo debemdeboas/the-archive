@@ -3,12 +3,17 @@ package main
 import (
 	"fmt"
 	"os"
+	"time"
 
-	"gopkg.in/yaml.v3"
 	"github.com/debemdeboas/the-archive/internal/config"
+	"github.com/rs/zerolog"
+	"gopkg.in/yaml.v3"
 )
 
 func main() {
+	log := zerolog.New(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339}).
+		With().Timestamp().Logger()
+
 	// Create a config with defaults applied
 	cfg := &config.Config{}
 	config.ApplyDefaults(cfg)
@@ -16,8 +21,7 @@ func main() {
 	// Marshal to YAML
 	yamlData, err := yaml.Marshal(cfg)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "Error generating YAML: %v\n", err)
-		os.Exit(1)
+		log.Fatal().Err(err).Msg("Error generating YAML")
 	}
 
 	// Add header comment
@@ -35,9 +39,8 @@ func main() {
 	} else {
 		err = os.WriteFile(outputFile, []byte(output), 0644)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "Error writing file: %v\n", err)
-			os.Exit(1)
+			log.Fatal().Err(err).Msg("Error writing file")
 		}
-		fmt.Printf("Generated example config: %s\n", outputFile)
+		log.Info().Msgf("Generated example config: %s", outputFile)
 	}
 }
