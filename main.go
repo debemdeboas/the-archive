@@ -33,13 +33,13 @@ import (
 var content embed.FS
 
 type Application struct {
-	log          zerolog.Logger
-	db           db.Db
-	postRepo     repository.PostRepository
-	editorRepo   editor.Repository
+	log           zerolog.Logger
+	db            db.Db
+	postRepo      repository.PostRepository
+	editorRepo    editor.Repository
 	editorHandler *editor.Handler
-	authProvider auth.AuthProvider
-	clients      *sse.SSEClients
+	authProvider  auth.AuthProvider
+	clients       *sse.SSEClients
 }
 
 func main() {
@@ -79,13 +79,13 @@ func main() {
 	}
 
 	app := &Application{
-		log:          log,
-		db:           database,
-		postRepo:     postRepo,
-		editorRepo:   editorRepo,
+		log:           log,
+		db:            database,
+		postRepo:      postRepo,
+		editorRepo:    editorRepo,
 		editorHandler: editorHandler,
-		authProvider: authProvider,
-		clients:      clients,
+		authProvider:  authProvider,
+		clients:       clients,
 	}
 
 	static, _ := fs.Sub(content, config.StaticLocalDir)
@@ -109,9 +109,6 @@ func main() {
 
 	mux.Handle(config.StaticUrlPath, http.StripPrefix(config.StaticUrlPath, http.FileServer(http.FS(static))))
 	mux.HandleFunc(config.PostsUrlPath, app.servePost)
-	if config.AppConfig.Features.Editor.Enabled {
-		mux.HandleFunc("/new/post", app.serveNewPost)
-	}
 
 	if config.AppConfig.Theme.AllowSwitching {
 		mux.HandleFunc("/theme/toggle", app.serveThemePostToggle)
@@ -120,6 +117,7 @@ func main() {
 			http.NotFound(w, r)
 		})
 	}
+
 	mux.HandleFunc("/syntax-theme/set", app.serveSyntaxThemePostSet)
 	mux.HandleFunc("/syntax-theme/{theme}", app.serveSyntaxThemeGetTheme)
 	mux.HandleFunc("/sse", app.eventsHandler)
@@ -140,8 +138,12 @@ func main() {
 			mux.HandleFunc("/partials/post/preview", previewDisabledHandler)
 			mux.HandleFunc("/partials/draft/preview", previewDisabledHandler)
 		}
+
+		mux.HandleFunc("/new/post", app.serveNewPost)
 		mux.Handle("/new/post/edit", http.HandlerFunc(app.editorHandler.ServeNewDraftEditor))
 		mux.Handle("/edit/post/", http.HandlerFunc(app.ServeEditPost))
+
+		mux.HandleFunc("/api/posts/{id}", app.handleApiPosts)
 	} else {
 		editorDisabledHandler := func(w http.ResponseWriter, r *http.Request) { http.NotFound(w, r) }
 		mux.HandleFunc("/new/post", editorDisabledHandler)
@@ -149,12 +151,8 @@ func main() {
 		mux.HandleFunc("/partials/draft/preview", editorDisabledHandler)
 		mux.HandleFunc("/new/post/edit", editorDisabledHandler)
 		mux.HandleFunc("/edit/post/", editorDisabledHandler)
-	}
 
-	if config.AppConfig.Features.Editor.Enabled {
-		mux.HandleFunc("/api/posts/{id}", app.handleApiPosts)
-	} else {
-		mux.HandleFunc("/api/posts/{id}", func(w http.ResponseWriter, r *http.Request) { http.NotFound(w, r) })
+		mux.HandleFunc("/api/posts/{id}", editorDisabledHandler)
 	}
 
 	if config.AppConfig.Features.Authentication.Enabled {

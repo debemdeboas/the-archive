@@ -24,6 +24,7 @@ func ContentHashString(content string) string {
 
 func GetFrontMatter(md []byte) *mast.TitleData {
 	md = markdown.NormalizeNewlines(md)
+	md = bytes.TrimLeft(md, "\n \t\r")
 
 	delimiter := []byte("%%%")
 
@@ -42,7 +43,12 @@ func GetFrontMatter(md []byte) *mast.TitleData {
 		return nil
 	}
 
-	frontMatter := md[:second+2*len(delimiter)+1]
+	end := second + 2*len(delimiter) + 1
+	if end > len(md) {
+		return nil
+	}
+
+	frontMatter := md[:end]
 	var info *mast.TitleData
 
 	p := parser.NewWithExtensions(mparser.Extensions)
