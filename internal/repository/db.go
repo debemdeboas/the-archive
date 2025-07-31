@@ -17,7 +17,8 @@ type DbPostRepository struct { // implements PostRepository
 	postsCache       *cache.Cache[string, *model.Post]
 	postsCacheSorted []model.Post
 
-	reloadNotifier func(model.PostId)
+	reloadNotifier   func(model.PostId)
+	lastModifiedTime *time.Time // Track the latest modification time
 
 	db         db.Db
 	compressor compression.Compressor
@@ -45,6 +46,42 @@ func (r *DbPostRepository) Init() {
 	go r.ReloadPosts()
 }
 
+func (r *DbPostRepository) GetLatestModifiedTime() (*time.Time, error) {
+	var latestTimeStr *string
+	row := r.db.Get().QueryRow(`SELECT MAX(modified_at) FROM posts`)
+	err := row.Scan(&latestTimeStr)
+	if err != nil {
+		return nil, fmt.Errorf("error querying latest modified time: %w", err)
+	}
+
+	if latestTimeStr == nil {
+		return nil, nil // No posts exist
+	}
+
+	// Try multiple time formats that SQLite might use
+	var latestTime time.Time
+	timeFormats := []string{
+		time.RFC3339Nano,
+		"2006-01-02 15:04:05.999999999-07:00",
+		"2006-01-02 15:04:05-07:00",
+		time.RFC3339,
+	}
+
+	var parseErr error
+	for _, format := range timeFormats {
+		latestTime, parseErr = time.Parse(format, *latestTimeStr)
+		if parseErr == nil {
+			break
+		}
+	}
+
+	if parseErr != nil {
+		return nil, fmt.Errorf("error parsing latest modified time '%s': %w", *latestTimeStr, parseErr)
+	}
+
+	return &latestTime, nil
+}
+
 func (r *DbPostRepository) GetPosts() ([]model.Post, map[string]*model.Post, error) {
 	rows, err := r.db.Query(`SELECT id, title, content, md_content_hash, created_at, modified_at, user_id FROM posts`)
 	if err != nil {
@@ -54,6 +91,7 @@ func (r *DbPostRepository) GetPosts() ([]model.Post, map[string]*model.Post, err
 
 	posts := make([]model.Post, 0)
 	postMap := make(map[string]*model.Post)
+	var latestModTime *time.Time
 
 	for rows.Next() {
 		var post model.Post
@@ -62,6 +100,11 @@ func (r *DbPostRepository) GetPosts() ([]model.Post, map[string]*model.Post, err
 		err := rows.Scan(&post.Id, &post.Title, &compressed, &post.MDContentHash, &post.CreatedDate, &post.ModifiedDate, &post.Owner)
 		if err != nil {
 			return nil, nil, fmt.Errorf("error scanning post: %w", err)
+		}
+
+		// Track the latest modification time
+		if latestModTime == nil || post.ModifiedDate.After(*latestModTime) {
+			latestModTime = &post.ModifiedDate
 		}
 
 		// Decompress the content
@@ -74,6 +117,9 @@ func (r *DbPostRepository) GetPosts() ([]model.Post, map[string]*model.Post, err
 		posts = append(posts, post)
 		postMap[string(post.Id)] = &post
 	}
+
+	// Update our tracked modification time
+	r.lastModifiedTime = latestModTime
 
 	// Sort the posts by creation date
 	slices.SortStableFunc(posts, func(a, b model.Post) int {
@@ -96,7 +142,29 @@ func (r *DbPostRepository) ReadPost(id any) (*model.Post, error) {
 }
 
 func (r *DbPostRepository) ReloadPosts() {
+	sleepFunc := func() {
+		time.Sleep(10 * time.Second)
+	}
+
 	for {
+		// First, do a lightweight check to see if anything has changed
+		latestTime, err := r.GetLatestModifiedTime()
+		if err != nil {
+			repoLogger.Error().Err(err).Msg("Error checking latest modification time")
+			sleepFunc()
+			continue
+		}
+
+		// If we have a cached time and nothing has changed, skip
+		if r.lastModifiedTime != nil && latestTime != nil && !latestTime.After(*r.lastModifiedTime) {
+			repoLogger.Debug().Msg("No posts modified, skipping reload")
+			sleepFunc()
+			continue
+		}
+
+		repoLogger.Info().Msg("Posts may have changed, performing full reload")
+
+		// Something changed, do the full reload
 		posts, postMap, err := r.GetPosts()
 		if err != nil {
 			repoLogger.Error().Err(err).Msg("Error reloading posts")
@@ -147,7 +215,7 @@ func (r *DbPostRepository) ReloadPosts() {
 			}
 		}
 
-		time.Sleep(10 * time.Second)
+		sleepFunc()
 	}
 }
 
