@@ -57,7 +57,9 @@ func main() {
 		log.Fatal().Err(err).Msg("Error initializing database")
 	}
 
+	repository.SetLogger(log)
 	auth.SetLogger(log)
+
 	clerkAuthProvider = auth.NewClerkAuthProvider(os.Getenv("CLERK_API"))
 	ed25519AuthProvider, err = auth.NewEd25519AuthProvider(
 		os.Getenv("ED25519_PUBKEY"),
