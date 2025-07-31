@@ -78,153 +78,153 @@ body main#content h1 {
   }
   
   /* Dark theme styles */
-  body.dark-theme main#content h1 {
+  body.dark main#content h1 {
     color: #ffb000;
     border-bottom: 2px solid #ffb000;
     text-shadow: 0 0 8px rgba(255, 176, 0, 0.4);
   }
   
-  body.dark-theme main#content h2 {
+  body.dark main#content h2 {
     color: #ff9900;
     border-bottom: 1px solid #ff9900;
     text-shadow: 0 0 6px rgba(255, 153, 0, 0.4);
   }
   
-  body.dark-theme main#content h3 {
+  body.dark main#content h3 {
     color: #ff8800;
     text-shadow: 0 0 4px rgba(255, 136, 0, 0.4);
   }
   
-  body.dark-theme main#content h4 {
+  body.dark main#content h4 {
     color: #ff7700;
     text-shadow: 0 0 3px rgba(255, 119, 0, 0.4);
   }
   
-  body.dark-theme main#content a {
+  body.dark main#content a {
     color: #ffa000;
     border-bottom: 1px solid rgba(255, 160, 0, 0.4);
     text-shadow: 0 0 2px rgba(255, 160, 0, 0.2);
   }
   
-  body.dark-theme main#content a:hover {
+  body.dark main#content a:hover {
     border-bottom-color: #ffa000;
     text-shadow: 0 0 8px rgba(255, 160, 0, 0.6);
   }
   
-  body.dark-theme main#content strong {
+  body.dark main#content strong {
     color: #ffc000;
   }
   
-  body.dark-theme main#content em {
+  body.dark main#content em {
     color: #ffd000;
   }
   
-  body.dark-theme main#content blockquote {
+  body.dark main#content blockquote {
     border-left: 3px solid rgba(255, 176, 0, 0.4);
     background: rgba(255, 176, 0, 0.05);
     text-shadow: 0 0 4px rgba(255, 176, 0, 0.2);
   }
   
-  body.dark-theme main#content code:not(pre code) {
+  body.dark main#content code:not(pre code) {
     color: #ffcc00;
     background: rgba(255, 176, 0, 0.1);
     text-shadow: 0 0 4px rgba(255, 204, 0, 0.4);
   }
   
-  body.dark-theme main#content table tfoot {
+  body.dark main#content table tfoot {
     border-top: 2px solid rgba(255, 176, 0, 0.4);
     color: #ff9900;
   }
   
-  body.dark-theme main#content dt {
+  body.dark main#content dt {
     color: #ffb000;
     text-shadow: 0 0 6px rgba(255, 176, 0, 0.6), 0 0 12px rgba(255, 176, 0, 0.3);
   }
   
-  body.dark-theme main#content span.callout {
+  body.dark main#content span.callout {
     background: rgba(255, 176, 0, 0.1);
     border: 1px solid rgba(255, 176, 0, 0.3);
     color: #ffb000;
     text-shadow: 0 0 4px rgba(255, 176, 0, 0.4);
   }
   
-  body.dark-theme main#content figcaption {
+  body.dark main#content figcaption {
     color: rgba(255, 176, 0, 0.8);
     text-shadow: 0 0 3px rgba(255, 176, 0, 0.3);
   }
   
   /* Light theme styles */
-  body.light-theme main#content h1 {
+  body.light main#content h1 {
     color: #884400;
     border-bottom: 2px solid #884400;
     text-shadow: 0 0 2px rgba(136, 68, 0, 0.8), 0 0 4px rgba(136, 68, 0, 0.4);
   }
   
-  body.light-theme main#content h2 {
+  body.light main#content h2 {
     color: #993300;
     border-bottom: 1px solid #993300;
     text-shadow: 0 0 2px rgba(153, 51, 0, 0.7), 0 0 3px rgba(153, 51, 0, 0.35);
   }
   
-  body.light-theme main#content h3 {
+  body.light main#content h3 {
     color: #aa2200;
     text-shadow: 0 0 2px rgba(170, 34, 0, 0.6), 0 0 3px rgba(170, 34, 0, 0.3);
   }
   
-  body.light-theme main#content h4 {
+  body.light main#content h4 {
     color: #bb1100;
     text-shadow: 0 0 2px rgba(187, 17, 0, 0.5), 0 0 2px rgba(187, 17, 0, 0.25);
   }
   
-  body.light-theme main#content a {
+  body.light main#content a {
     color: #cc3300;
     border-bottom: 1px solid rgba(204, 51, 0, 0.3);
     text-shadow: 0 0 1px rgba(204, 51, 0, 0.1);
   }
   
-  body.light-theme main#content a:hover {
+  body.light main#content a:hover {
     border-bottom-color: #cc3300;
     text-shadow: 0 0 4px rgba(204, 51, 0, 0.3);
   }
   
-  body.light-theme main#content strong {
+  body.light main#content strong {
     color: #dd4400;
   }
   
-  body.light-theme main#content em {
+  body.light main#content em {
     color: #ee5500;
   }
   
-  body.light-theme main#content blockquote {
+  body.light main#content blockquote {
     border-left: 3px solid rgba(136, 68, 0, 0.3);
     background: rgba(136, 68, 0, 0.05);
     text-shadow: 0 0 2px rgba(136, 68, 0, 0.1);
   }
   
-  body.light-theme main#content code:not(pre code) {
+  body.light main#content code:not(pre code) {
     color: #993300;
     background: rgba(136, 68, 0, 0.08);
     text-shadow: 0 0 2px rgba(153, 51, 0, 0.2);
   }
   
-  body.light-theme main#content table tfoot {
+  body.light main#content table tfoot {
     border-top: 2px solid rgba(136, 68, 0, 0.3);
     color: #993300;
   }
   
-  body.light-theme main#content dt {
+  body.light main#content dt {
     color: #884400;
     text-shadow: 0 0 4px rgba(136, 68, 0, 0.8), 0 0 8px rgba(136, 68, 0, 0.4);
   }
   
-  body.light-theme main#content span.callout {
+  body.light main#content span.callout {
     background: rgba(136, 68, 0, 0.08);
     border: 1px solid rgba(136, 68, 0, 0.2);
     color: #884400;
     text-shadow: 0 0 2px rgba(136, 68, 0, 0.4), 0 0 4px rgba(136, 68, 0, 0.2);
   }
   
-  body.light-theme main#content figcaption {
+  body.light main#content figcaption {
     color: rgba(136, 68, 0, 0.8);
     text-shadow: 0 0 2px rgba(136, 68, 0, 0.2);
   }

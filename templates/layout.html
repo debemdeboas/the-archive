@@ -3,12 +3,15 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    {{if .SiteDescription}}<meta name="description" content="{{.SiteDescription}}" />{{end}}
+    {{if .SiteKeywords}}<meta name="keywords" content="{{range $i, $keyword := .SiteKeywords}}{{if $i}}, {{end}}{{$keyword}}{{end}}" />{{end}}
+    {{if .SiteAuthor}}<meta name="author" content="{{.SiteAuthor}}" />{{end}}
     <link rel="icon" type="image/svg+xml" href="/static/icons/favicon.svg" />
     <link
       rel="preload"
       as="font"
       type="font/woff2"
-      href="/fonts/TX-02-SemiBold.woff2"
+      href="/static/fonts/TX-02-SemiBold.woff2"
       crossorigin
     />
     <title>{{template "title" .}}</title>
@@ -122,6 +125,7 @@
               <i class="fa-solid fa-user-shield"></i>
             </button>
           </div>
+          {{if .EditorEnabled}}
           {{if .IsEditor}}
           <div
             class="title-wrapper"
@@ -138,6 +142,8 @@
             </button>
           </div>
           {{end}}
+          {{end}}
+          {{if .AllowThemeSwitching}}
           <div class="title-wrapper" data-tooltip="Toggle dark/light theme">
             <button
               hx-post="/theme/toggle"
@@ -146,7 +152,7 @@
               class="theme-toggle"
             >
               <span class="theme-icon">
-                {{if eq .Theme "light-theme"}}
+                {{if eq .Theme "light"}}
                 <i class="fas fa-moon"></i>
                 {{else}}
                 <i class="fas fa-sun"></i>
@@ -154,6 +160,7 @@
               </span>
             </button>
           </div>
+          {{end}}
           <div
             class="title-wrapper"
             data-tooltip="Select syntax highlighting theme"

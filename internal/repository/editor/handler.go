@@ -56,6 +56,12 @@ func (h *Handler) ServeNewDraftEditor(w http.ResponseWriter, r *http.Request) {
 	saveUrl := "/api/posts/" + string(draft.Id)
 	saveMethod := "POST"
 
+	pageData := model.NewPageData(r)
+	hxPostUrl := ""
+	if pageData.LivePreviewEnabled {
+		hxPostUrl = "/partials/draft/preview"
+	}
+	
 	data := struct {
 		*model.PageData
 		*model.Post
@@ -63,9 +69,9 @@ func (h *Handler) ServeNewDraftEditor(w http.ResponseWriter, r *http.Request) {
 		HxSaveUrl    *string
 		HxSaveMethod *string
 	}{
-		PageData:     model.NewPageData(r),
+		PageData:     pageData,
 		Post:         &model.Post{Id: model.PostId(draft.Id), Markdown: draft.Content},
-		HxPostUrl:    "/partials/draft/preview",
+		HxPostUrl:    hxPostUrl,
 		HxSaveUrl:    &saveUrl,
 		HxSaveMethod: &saveMethod,
 	}
@@ -91,6 +97,12 @@ func (h *Handler) ServeEditPostEditor(w http.ResponseWriter, r *http.Request, po
 	saveUrl := "/api/posts/" + string(post.Id)
 	savePut := "PUT"
 
+	pageData := model.NewPageData(r)
+	hxPostUrl := ""
+	if pageData.LivePreviewEnabled {
+		hxPostUrl = "/partials/post/preview"
+	}
+	
 	data := struct {
 		*model.PageData
 		*model.Post
@@ -98,9 +110,9 @@ func (h *Handler) ServeEditPostEditor(w http.ResponseWriter, r *http.Request, po
 		HxSaveUrl    *string
 		HxSaveMethod *string
 	}{
-		PageData:     model.NewPageData(r),
+		PageData:     pageData,
 		Post:         post,
-		HxPostUrl:    "/partials/post/preview",
+		HxPostUrl:    hxPostUrl,
 		HxSaveUrl:    &saveUrl,
 		HxSaveMethod: &savePut,
 	}

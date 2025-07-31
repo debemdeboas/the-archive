@@ -29,11 +29,26 @@ Editing "{{.Post.Title}}" - {{ $.SiteName }}
 <textarea
     id="editor-content"
     name="content"
-    hx-post="{{.HxPostUrl}}"
+    {{if .HxPostUrl}}hx-post="{{.HxPostUrl}}"
     hx-trigger="keyup changed delay:1ms, load"
     hx-target="#post-content"
-    hx-vals='{"draft-id": "{{.Post.Id}}"}'
+    hx-vals='{"draft-id": "{{.Post.Id}}"}'{{end}}
 >{{.Post.Markdown | printf "%s"}}</textarea>
 
+{{if .LivePreviewEnabled}}
 <div id="post-content"></div>
+{{else}}
+<style>
+  main#content.editor {
+    grid-template-columns: 1fr !important;
+    justify-content: center;
+  }
+
+  main#content.editor textarea#editor-content {
+    border-right: none !important;
+    max-width: 800px;
+    margin: 0 auto;
+  }
+</style>
+{{end}}
 {{end}}

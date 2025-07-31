@@ -10,11 +10,18 @@ import (
 )
 
 type PageData struct {
-	SiteName string
+	SiteName    string
+	SiteTagline string
+	SiteDescription string
+	SiteKeywords []string
+	SiteAuthor   string
 
 	PageURL string
 
-	Theme string
+	Theme           string
+	AllowThemeSwitching bool
+	EditorEnabled       bool
+	LivePreviewEnabled  bool
 
 	SyntaxCSS    template.CSS
 	SyntaxTheme  string
@@ -27,12 +34,19 @@ type PageData struct {
 func NewPageData(r *http.Request) *PageData {
 	syntaxtheme := theme.GetSyntaxThemeFromRequest(r)
 	return &PageData{
-		SiteName:     config.SiteName,
-		PageURL:      r.URL.Path,
-		Theme:        theme.GetThemeFromRequest(r),
-		SyntaxTheme:  syntaxtheme,
-		SyntaxThemes: theme.GetSyntaxThemes(),
-		SyntaxCSS:    theme.GenerateSyntaxCSS(syntaxtheme),
+		SiteName:            config.AppConfig.Site.Name,
+		SiteTagline:         config.AppConfig.Site.Tagline,
+		SiteDescription:     config.AppConfig.Site.Description,
+		SiteKeywords:        config.AppConfig.Meta.Keywords,
+		SiteAuthor:          config.AppConfig.Meta.Author,
+		PageURL:             r.URL.Path,
+		Theme:               theme.GetThemeFromRequest(r),
+		AllowThemeSwitching: config.AppConfig.Theme.AllowSwitching,
+		EditorEnabled:       config.AppConfig.Features.Editor.Enabled,
+		LivePreviewEnabled:  config.AppConfig.Features.Editor.LivePreview,
+		SyntaxTheme:         syntaxtheme,
+		SyntaxThemes:        theme.GetSyntaxThemes(),
+		SyntaxCSS:           theme.GenerateSyntaxCSS(syntaxtheme),
 	}
 }
 

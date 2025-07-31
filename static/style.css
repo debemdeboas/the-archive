@@ -32,7 +32,7 @@ html {
   font-style: normal;
 }
 
-body.light-theme {
+body.light {
   --dropdown-bg: #ffffff;
 
   --bg-color: #f0f0f0;
@@ -64,7 +64,7 @@ body.light-theme {
     );
 }
 
-body.dark-theme {
+body.dark {
   background-image: radial-gradient(
       circle at top left,
       rgba(255, 191, 0, 0.03),
@@ -175,21 +175,21 @@ select:hover {
   text-decoration: none;
 }
 
-body.dark-theme #nav-go-home {
+body.dark #nav-go-home {
   text-shadow: 0 0 8px var(--shadow-color);
   color: #ffa000;
 }
 
-body.light-theme #nav-go-home {
+body.light #nav-go-home {
   text-shadow: 0 0 2px rgba(136, 68, 0, 0.8), 0 0 4px rgba(136, 68, 0, 0.4);
   color: #cc3300;
 }
 
-body.dark-theme #nav-go-home:hover {
+body.dark #nav-go-home:hover {
   border-bottom-color: #ffa000;
 }
 
-body.light-theme #nav-go-home:hover {
+body.light #nav-go-home:hover {
   border-bottom-color: #cc3300;
 }
 
@@ -487,7 +487,7 @@ body div.title-wrapper:last-child[data-tooltip]:hover::after {
   width: auto;
 }
 
-body.dark-theme div.title-wrapper[data-tooltip]:hover::after {
+body.dark div.title-wrapper[data-tooltip]:hover::after {
   background: rgba(20, 20, 20, 0.95);
   color: #ffb000;
   border: 1px solid rgba(255, 176, 0, 0.3);
@@ -495,7 +495,7 @@ body.dark-theme div.title-wrapper[data-tooltip]:hover::after {
   box-shadow: 0 0 10px rgba(255, 176, 0, 0.1);
 }
 
-body.light-theme div.title-wrapper[data-tooltip]:hover::after {
+body.light div.title-wrapper[data-tooltip]:hover::after {
   background: rgba(250, 250, 250, 0.95);
   color: #884400;
   border: 1px solid rgba(136, 68, 0, 0.2);
