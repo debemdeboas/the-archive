@@ -23,6 +23,7 @@
 
 html {
   font-size: var(--font-size);
+  overflow: hidden;
 }
 
 @font-face {
@@ -87,9 +88,10 @@ body {
   border-color: var(--border-color);
   background-blend-mode: multiply;
 
-  min-height: 100vh;
+  height: 100vh;
   flex-direction: column;
   display: flex;
+  overflow: hidden;
 
   transition: all 0.2s ease;
 }
@@ -114,11 +116,9 @@ main#content::-webkit-scrollbar-thumb {
 main#content {
   flex: 1 1 auto;
   overflow-y: auto;
-  overflow-x: auto;
+  overflow-x: hidden;
   padding: 1rem;
   margin-top: 4rem;
-
-  height: 90vh;
 }
 
 .container {
@@ -201,8 +201,7 @@ body.light #nav-go-home:hover {
 .navbar {
   display: flex;
   align-items: center;
-  background-color: rgba(0, 0, 0, 0.1);
-  backdrop-filter: blur(10px);
+  background-color: rgba(24, 24, 24, 0.95);
   border-bottom: 1px solid var(--border-color, #3d3d3d);
   position: fixed;
   top: 0;
@@ -213,6 +212,10 @@ body.light #nav-go-home:hover {
   padding: 0.5rem 0;
   height: auto;
   flex-shrink: 0;
+}
+
+body.light .navbar {
+  background-color: rgba(240, 240, 240, 0.95);
 }
 
 nav.navbar h1 {
