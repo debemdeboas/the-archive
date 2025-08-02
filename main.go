@@ -92,68 +92,50 @@ func main() {
 	static, _ := fs.Sub(content, config.StaticLocalDir)
 	fs.WalkDir(static, ".", func(path string, d fs.DirEntry, err error) error {
 		if !d.IsDir() {
-			cache.SetStaticHash(config.StaticUrlPath+path, util.ContentHash([]byte(path)))
+			cache.SetStaticHash(config.StaticURLPath+path, util.ContentHash([]byte(path)))
 		}
 		return nil
 	})
 
 	mux := http.NewServeMux()
 
-	mux.HandleFunc("/robots.txt", func(w http.ResponseWriter, r *http.Request) {
+	mux.HandleFunc(routes.RobotsPath, func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set(config.HCType, "text/plain")
 		w.WriteHeader(http.StatusOK)
 		w.Write([]byte("User-agent: *\nDisallow:"))
 	})
 
-	mux.HandleFunc("/theme/opposite-icon", app.serveThemeOppositeIcon)
-	mux.HandleFunc("/partials/post", app.servePartialsPost)
+	mux.HandleFunc(routes.RootPath, app.serveIndex)
+	mux.Handle(config.StaticURLPath, http.StripPrefix(config.StaticURLPath, http.FileServer(http.FS(static))))
 
-	mux.Handle(config.StaticUrlPath, http.StripPrefix(config.StaticUrlPath, http.FileServer(http.FS(static))))
-	mux.HandleFunc(config.PostsUrlPath, app.servePost)
+	mux.HandleFunc(config.PostsURLPath, app.servePost)
+	mux.HandleFunc(routes.PartialsPost, app.servePartialsPost)
 
 	if config.AppConfig.Theme.AllowSwitching {
-		mux.HandleFunc("/theme/toggle", app.serveThemePostToggle)
-	} else {
-		mux.HandleFunc("/theme/toggle", func(w http.ResponseWriter, r *http.Request) {
-			http.NotFound(w, r)
-		})
+		mux.HandleFunc(routes.ThemeToggle, app.serveThemePostToggle)
+		mux.HandleFunc(routes.ThemeOppositeIcon, app.serveThemeOppositeIcon)
 	}
+	mux.HandleFunc(routes.SyntaxThemeSet, app.serveSyntaxThemePostSet)
+	mux.HandleFunc(routes.SyntaxThemeGet, app.serveSyntaxThemeGetTheme)
 
-	mux.HandleFunc("/syntax-theme/set", app.serveSyntaxThemePostSet)
-	mux.HandleFunc("/syntax-theme/{theme}", app.serveSyntaxThemeGetTheme)
-	mux.HandleFunc("/sse", app.eventsHandler)
-	mux.HandleFunc("/", app.serveIndex)
+	mux.HandleFunc(routes.SSEPath, app.eventsHandler)
 
 	if config.AppConfig.Features.Editor.Enabled {
+		mux.HandleFunc(routes.NewPost, app.serveNewPost)
+		mux.Handle(routes.NewPostEdit, http.HandlerFunc(app.editorHandler.ServeNewDraftEditor))
+		mux.Handle(routes.EditPost, http.HandlerFunc(app.ServeEditPost))
+		mux.HandleFunc(routes.APIPosts, app.handleAPIPosts)
+
 		if config.AppConfig.Features.Editor.LivePreview {
 			mux.Handle(
-				"/partials/post/preview",
+				routes.PartialsPostPreview,
 				http.HandlerFunc(app.midWithPostSaving(app.serveNewPostPreview)),
 			)
 			mux.Handle(
-				"/partials/draft/preview",
+				routes.PartialsDraftPreview,
 				http.HandlerFunc(app.midWithDraftSaving(app.serveNewPostPreview)),
 			)
-		} else {
-			previewDisabledHandler := func(w http.ResponseWriter, r *http.Request) { http.NotFound(w, r) }
-			mux.HandleFunc("/partials/post/preview", previewDisabledHandler)
-			mux.HandleFunc("/partials/draft/preview", previewDisabledHandler)
 		}
-
-		mux.HandleFunc("/new/post", app.serveNewPost)
-		mux.Handle("/new/post/edit", http.HandlerFunc(app.editorHandler.ServeNewDraftEditor))
-		mux.Handle("/edit/post/", http.HandlerFunc(app.ServeEditPost))
-
-		mux.HandleFunc("/api/posts/{id}", app.handleApiPosts)
-	} else {
-		editorDisabledHandler := func(w http.ResponseWriter, r *http.Request) { http.NotFound(w, r) }
-		mux.HandleFunc("/new/post", editorDisabledHandler)
-		mux.HandleFunc("/partials/post/preview", editorDisabledHandler)
-		mux.HandleFunc("/partials/draft/preview", editorDisabledHandler)
-		mux.HandleFunc("/new/post/edit", editorDisabledHandler)
-		mux.HandleFunc("/edit/post/", editorDisabledHandler)
-
-		mux.HandleFunc("/api/posts/{id}", editorDisabledHandler)
 	}
 
 	if config.AppConfig.Features.Authentication.Enabled {
@@ -164,7 +146,7 @@ func main() {
 	app.postRepo.SetReloadNotifier(app.handleReloadPost)
 
 	securedMux := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path == "/robots.txt" {
+		if r.URL.Path == routes.RobotsPath {
 			mux.ServeHTTP(w, r)
 		} else {
 			secureHeaders(mux.ServeHTTP)(w, r)
@@ -214,8 +196,8 @@ func (app *Application) servePartialsPost(w http.ResponseWriter, r *http.Request
 
 func (app *Application) serveNewPost(w http.ResponseWriter, r *http.Request) {
 	http.SetCookie(w, &http.Cookie{Name: config.CookieDraftID, Value: "", Path: "/"})
-	w.Header().Add(config.HHxRedirect, "/new/post/edit")
-	http.Redirect(w, r, "/new/post/edit", http.StatusFound)
+	w.Header().Add(config.HHxRedirect, routes.NewPostEdit)
+	http.Redirect(w, r, routes.NewPostEdit, http.StatusFound)
 }
 
 func loggingMiddleware(log zerolog.Logger) func(http.Handler) http.Handler {

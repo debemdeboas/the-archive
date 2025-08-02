@@ -31,7 +31,7 @@ func Ed25519ChallengeHandler(provider *Ed25519AuthProvider) http.HandlerFunc {
 			// Generate a new challenge
 			if err := provider.RefreshChallenge(); err != nil {
 				l.Error().Err(err).Msg("Failed to refresh challenge")
-				http.Error(w, "Failed to refresh challenge", http.StatusInternalServerError)
+				http.Error(w, config.ErrRefreshChallengeFmt, http.StatusInternalServerError)
 				return
 			}
 
@@ -44,7 +44,7 @@ func Ed25519ChallengeHandler(provider *Ed25519AuthProvider) http.HandlerFunc {
 			json.NewEncoder(w).Encode(response)
 
 		default:
-			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			http.Error(w, config.HTTPErrMethodNotAllowed, http.StatusMethodNotAllowed)
 		}
 	}
 }
@@ -53,21 +53,21 @@ func Ed25519ChallengeHandler(provider *Ed25519AuthProvider) http.HandlerFunc {
 func Ed25519VerifyHandler(provider *Ed25519AuthProvider) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
-			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			http.Error(w, config.HTTPErrMethodNotAllowed, http.StatusMethodNotAllowed)
 			return
 		}
 
 		// Get authorization header
 		authHeader := r.Header.Get(provider.headerName)
 		if authHeader == "" {
-			http.Error(w, "Authorization header required", http.StatusUnauthorized)
+			http.Error(w, config.ErrAuthHeaderRequired, http.StatusUnauthorized)
 			return
 		}
 
 		signature, err := base64.StdEncoding.DecodeString(strings.TrimSpace(authHeader))
 		if err != nil {
 			authLogger.Error().Err(err).Msg("Failed to decode signature")
-			http.Error(w, "Invalid signature format", http.StatusUnauthorized)
+			http.Error(w, config.ErrInvalidSignatureFormat, http.StatusUnauthorized)
 			return
 		}
 
@@ -77,12 +77,12 @@ func Ed25519VerifyHandler(provider *Ed25519AuthProvider) http.HandlerFunc {
 				Str("signature", string(signature)).
 				Str("challenge", string(provider.challenge)).
 				Msg("Signature verification failed")
-			http.Error(w, "Invalid signature", http.StatusUnauthorized)
+			http.Error(w, config.ErrInvalidSignature, http.StatusUnauthorized)
 			return
 		}
 
 		http.SetCookie(w, &http.Cookie{
-			Name:     "auth_token",
+			Name:     config.CookieAuthToken,
 			Value:    base64.StdEncoding.EncodeToString(signature),
 			Path:     "/",
 			HttpOnly: true,
@@ -121,10 +121,10 @@ func Ed25519AuthPageHandler(provider *Ed25519AuthProvider, tmpl *template.Templa
 			}
 		}
 
-		err := tmpl.ExecuteTemplate(w, "ed25519_auth", data)
+		err := tmpl.ExecuteTemplate(w, config.TemplateNameAuth, data)
 		if err != nil {
 			l.Error().Err(err).Msg("Failed to render auth template")
-			http.Error(w, "Internal server error", http.StatusInternalServerError)
+			http.Error(w, config.ErrInternalServerError, http.StatusInternalServerError)
 		}
 	}
 }

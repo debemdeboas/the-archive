@@ -50,7 +50,7 @@ func NewEd25519AuthProvider(publicKeyPEM string, headerName string, userID model
 	return &Ed25519AuthProvider{
 		publicKey:  publicKey,
 		headerName: headerName,
-		cookieName: "auth_token",
+		cookieName: config.CookieAuthToken,
 		userID:     userID,
 		challenge:  challenge,
 	}, nil

@@ -59,7 +59,7 @@ func (pd *PageData) IsPost() bool {
 
 func (pd *PageData) IsEditor() bool {
 	if pd.IsEditorPage == nil {
-		return strings.HasPrefix(pd.PageURL, "/new/post/edit")
+		return pd.PageURL == "/new/post/edit" || strings.HasPrefix(pd.PageURL, "/new/post/edit/")
 	}
 	return *pd.IsEditorPage
 }

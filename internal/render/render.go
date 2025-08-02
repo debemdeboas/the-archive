@@ -59,8 +59,20 @@ func RenderMarkdown(md []byte, highlightTheme string) ([]byte, any) {
 	}
 }
 
+// Mutex to protect the check-render-set operation in RenderMarkdownCached
+var renderCacheMutex sync.Mutex
+
 func RenderMarkdownCached(md []byte, contentHash, highlightTheme string) ([]byte, any) {
-	// Check cache first
+	// First check cache without locking (fast path for cache hits)
+	if cached, found := cache.GetRenderedMarkdown(contentHash, highlightTheme); found {
+		return cached.HTML, cached.Extra
+	}
+
+	// Cache miss - use mutex to prevent duplicate renders
+	renderCacheMutex.Lock()
+	defer renderCacheMutex.Unlock()
+
+	// Double-check cache after acquiring lock
 	if cached, found := cache.GetRenderedMarkdown(contentHash, highlightTheme); found {
 		return cached.HTML, cached.Extra
 	}
