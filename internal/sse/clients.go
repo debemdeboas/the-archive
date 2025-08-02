@@ -1,3 +1,4 @@
+// Package sse provides Server-Sent Events client management for real-time communication.
 package sse
 
 import (

@@ -1,3 +1,4 @@
+// Package repository provides post storage and retrieval interfaces and implementations.
 package repository
 
 import (

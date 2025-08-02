@@ -1,3 +1,4 @@
+// Package render provides markdown rendering and syntax highlighting functionality.
 package render
 
 import (

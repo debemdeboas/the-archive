@@ -1,3 +1,4 @@
+// Package editor provides draft management interfaces and data structures for the blog editor.
 package editor
 
 import "github.com/debemdeboas/the-archive/internal/model"

@@ -1,3 +1,4 @@
+// Package theme handles theme management, syntax highlighting, and CSS generation.
 package theme
 
 import (

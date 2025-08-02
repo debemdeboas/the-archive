@@ -1,3 +1,4 @@
+// Package user provides user authentication provider interfaces.
 package user
 
 import (

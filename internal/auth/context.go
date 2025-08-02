@@ -1,3 +1,4 @@
+// Package auth provides authentication utilities and context management for user authentication.
 package auth
 
 import (

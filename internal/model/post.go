@@ -1,3 +1,4 @@
+// Package model defines core data structures and types for the blog application.
 package model
 
 import (

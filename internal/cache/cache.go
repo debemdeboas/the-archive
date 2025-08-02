@@ -1,3 +1,4 @@
+// Package cache provides thread-safe generic caching functionality and markdown rendering cache.
 package cache
 
 import "sync"

@@ -1,3 +1,4 @@
+// Package util provides utility functions for content hashing and front matter parsing.
 package util
 
 import (

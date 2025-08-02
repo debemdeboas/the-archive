@@ -1,3 +1,4 @@
+// Package db provides database interface abstractions and connection management.
 package db
 
 import (
