@@ -14,6 +14,12 @@ import (
 	"github.com/debemdeboas/the-archive/internal/model"
 )
 
+const errUnexpected = "Unexpected error: %v"
+const errExpectedErrorGotNone = "Expected error but got none"
+const errExpectedUserIDGotAnother = "Expected user ID '%s', got '%s'"
+
+const failedToCreateProvider = "Failed to create provider: %v"
+
 func TestNewEd25519AuthProvider(t *testing.T) {
 	testCases := []struct {
 		name        string
@@ -71,7 +77,7 @@ X5g7H8Y9V2sF8b3p1LZN4h6f8e9X4D7B5Z0P4p2nF8h7gY3e2Q5k8Z0CAwEAAQ==
 
 			if tc.expectError {
 				if err == nil {
-					t.Errorf("Expected error but got none")
+					t.Errorf(errExpectedErrorGotNone)
 				} else if tc.errorMsg != "" && err.Error() != tc.errorMsg {
 					t.Errorf("Expected error message '%s', got '%s'", tc.errorMsg, err.Error())
 				}
@@ -79,7 +85,7 @@ X5g7H8Y9V2sF8b3p1LZN4h6f8e9X4D7B5Z0P4p2nF8h7gY3e2Q5k8Z0CAwEAAQ==
 			}
 
 			if err != nil {
-				t.Errorf("Unexpected error: %v", err)
+				t.Errorf(errUnexpected, err)
 				return
 			}
 
@@ -92,7 +98,7 @@ X5g7H8Y9V2sF8b3p1LZN4h6f8e9X4D7B5Z0P4p2nF8h7gY3e2Q5k8Z0CAwEAAQ==
 			}
 
 			if provider.userID != tc.userID {
-				t.Errorf("Expected user ID '%s', got '%s'", tc.userID, provider.userID)
+				t.Errorf(errExpectedUserIDGotAnother, tc.userID, provider.userID)
 			}
 
 			if provider.cookieName != "auth_token" {
@@ -113,7 +119,7 @@ X5g7H8Y9V2sF8b3p1LZN4h6f8e9X4D7B5Z0P4p2nF8h7gY3e2Q5k8Z0CAwEAAQ==
 func TestEd25519AuthProvider_WithHeaderAuthorization(t *testing.T) {
 	provider, err := NewEd25519AuthProvider(testdata.TestPublicKeyPEM, "Authorization", testdata.TestUserID)
 	if err != nil {
-		t.Fatalf("Failed to create provider: %v", err)
+		t.Fatalf(failedToCreateProvider, err)
 	}
 
 	// Set a fixed challenge for consistent testing
@@ -210,7 +216,7 @@ func TestEd25519AuthProvider_WithHeaderAuthorization(t *testing.T) {
 				if userID == nil {
 					t.Error("Expected user ID in context, but got none")
 				} else if userID.(model.UserID) != tc.expectedUserID {
-					t.Errorf("Expected user ID '%s', got '%s'", tc.expectedUserID, userID.(model.UserID))
+					t.Errorf(errExpectedUserIDGotAnother, tc.expectedUserID, userID.(model.UserID))
 				}
 			} else {
 				if userID != nil {
@@ -229,7 +235,7 @@ func TestEd25519AuthProvider_WithHeaderAuthorization(t *testing.T) {
 func TestEd25519AuthProvider_GetUserIDFromSession(t *testing.T) {
 	provider, err := NewEd25519AuthProvider(testdata.TestPublicKeyPEM, "Authorization", testdata.TestUserID)
 	if err != nil {
-		t.Fatalf("Failed to create provider: %v", err)
+		t.Fatalf(failedToCreateProvider, err)
 	}
 
 	testCases := []struct {
@@ -260,18 +266,18 @@ func TestEd25519AuthProvider_GetUserIDFromSession(t *testing.T) {
 
 			if tc.expectError {
 				if err == nil {
-					t.Error("Expected error but got none")
+					t.Error(errExpectedErrorGotNone)
 				}
 				return
 			}
 
 			if err != nil {
-				t.Errorf("Unexpected error: %v", err)
+				t.Errorf(errUnexpected, err)
 				return
 			}
 
 			if userID != tc.expectedID {
-				t.Errorf("Expected user ID '%s', got '%s'", tc.expectedID, userID)
+				t.Errorf(errExpectedUserIDGotAnother, tc.expectedID, userID)
 			}
 		})
 	}
@@ -280,7 +286,7 @@ func TestEd25519AuthProvider_GetUserIDFromSession(t *testing.T) {
 func TestEd25519AuthProvider_EnforceUserAndGetID(t *testing.T) {
 	provider, err := NewEd25519AuthProvider(testdata.TestPublicKeyPEM, "Authorization", testdata.TestUserID)
 	if err != nil {
-		t.Fatalf("Failed to create provider: %v", err)
+		t.Fatalf(failedToCreateProvider, err)
 	}
 
 	testCases := []struct {
@@ -317,7 +323,7 @@ func TestEd25519AuthProvider_EnforceUserAndGetID(t *testing.T) {
 
 			if tc.expectError {
 				if err == nil {
-					t.Error("Expected error but got none")
+					t.Error(errExpectedErrorGotNone)
 				}
 				if recorder.Code != tc.expectedStatus {
 					t.Errorf("Expected status %d, got %d", tc.expectedStatus, recorder.Code)
@@ -332,12 +338,12 @@ func TestEd25519AuthProvider_EnforceUserAndGetID(t *testing.T) {
 			}
 
 			if err != nil {
-				t.Errorf("Unexpected error: %v", err)
+				t.Errorf(errUnexpected, err)
 				return
 			}
 
 			if userID != tc.expectedID {
-				t.Errorf("Expected user ID '%s', got '%s'", tc.expectedID, userID)
+				t.Errorf(errExpectedUserIDGotAnother, tc.expectedID, userID)
 			}
 
 			if recorder.Code != 200 && recorder.Code != 0 {
@@ -350,7 +356,7 @@ func TestEd25519AuthProvider_EnforceUserAndGetID(t *testing.T) {
 func TestEd25519AuthProvider_GetChallenge(t *testing.T) {
 	provider, err := NewEd25519AuthProvider(testdata.TestPublicKeyPEM, "Authorization", testdata.TestUserID)
 	if err != nil {
-		t.Fatalf("Failed to create provider: %v", err)
+		t.Fatalf(failedToCreateProvider, err)
 	}
 
 	challenge := provider.GetChallenge()
@@ -365,7 +371,7 @@ func TestEd25519AuthProvider_GetChallenge(t *testing.T) {
 func TestEd25519AuthProvider_RefreshChallenge(t *testing.T) {
 	provider, err := NewEd25519AuthProvider(testdata.TestPublicKeyPEM, "Authorization", testdata.TestUserID)
 	if err != nil {
-		t.Fatalf("Failed to create provider: %v", err)
+		t.Fatalf(failedToCreateProvider, err)
 	}
 
 	originalChallenge := make([]byte, len(provider.challenge))
@@ -390,7 +396,7 @@ func TestEd25519AuthProvider_RefreshChallenge(t *testing.T) {
 func TestEd25519AuthProvider_HandleWebhookUser(t *testing.T) {
 	provider, err := NewEd25519AuthProvider(testdata.TestPublicKeyPEM, "Authorization", testdata.TestUserID)
 	if err != nil {
-		t.Fatalf("Failed to create provider: %v", err)
+		t.Fatalf(failedToCreateProvider, err)
 	}
 
 	req := httptest.NewRequest("POST", "/webhook", nil)

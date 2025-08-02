@@ -9,12 +9,12 @@ import (
 	"github.com/rs/zerolog"
 )
 
+const failedToCreateTempFile = "Failed to create temp file: %v"
+const failedToWriteConfigCont = "Failed to write config content: %v"
+
 func TestSetLogger(t *testing.T) {
 	logger := zerolog.New(os.Stdout).Level(zerolog.InfoLevel)
 	SetLogger(logger)
-
-	// Verify logger is set (we can't easily compare loggers directly)
-	// This test mainly ensures the function doesn't panic
 }
 
 func TestApplyDefaults(t *testing.T) {
@@ -242,12 +242,12 @@ content:
 `
 		tempFile, err := os.CreateTemp("", "test-config-*.yaml")
 		if err != nil {
-			t.Fatalf("Failed to create temp file: %v", err)
+			t.Fatalf(failedToCreateTempFile, err)
 		}
 		defer os.Remove(tempFile.Name())
 
 		if _, err := tempFile.WriteString(configContent); err != nil {
-			t.Fatalf("Failed to write config content: %v", err)
+			t.Fatalf(failedToWriteConfigCont, err)
 		}
 		tempFile.Close()
 
@@ -301,12 +301,12 @@ site:
 `
 		tempFile, err := os.CreateTemp("", "test-config-invalid-*.yaml")
 		if err != nil {
-			t.Fatalf("Failed to create temp file: %v", err)
+			t.Fatalf(failedToCreateTempFile, err)
 		}
 		defer os.Remove(tempFile.Name())
 
 		if _, err := tempFile.WriteString(invalidContent); err != nil {
-			t.Fatalf("Failed to write config content: %v", err)
+			t.Fatalf(failedToWriteConfigCont, err)
 		}
 		tempFile.Close()
 
@@ -333,12 +333,12 @@ features:
 `
 		tempFile, err := os.CreateTemp("", "test-config-partial-*.yaml")
 		if err != nil {
-			t.Fatalf("Failed to create temp file: %v", err)
+			t.Fatalf(failedToCreateTempFile, err)
 		}
 		defer os.Remove(tempFile.Name())
 
 		if _, err := tempFile.WriteString(configContent); err != nil {
-			t.Fatalf("Failed to write config content: %v", err)
+			t.Fatalf(failedToWriteConfigCont, err)
 		}
 		tempFile.Close()
 

@@ -9,6 +9,13 @@ import (
 	"github.com/rs/zerolog"
 )
 
+const failedToInitDB = "Failed to initialize database: %v"
+
+const select1 = `SELECT 1`
+const insertUserUsername = `INSERT INTO users (id, username) VALUES (?, ?)`
+
+const testEmail = "test@example.com"
+
 func TestSetLogger(t *testing.T) {
 	logger := zerolog.New(os.Stdout).Level(zerolog.InfoLevel)
 	SetLogger(logger)
@@ -51,7 +58,7 @@ func TestSQLiteBasicOperations(t *testing.T) {
 	t.Run("InitDB creates tables", func(t *testing.T) {
 		err := db.InitDB()
 		if err != nil {
-			t.Fatalf("Failed to initialize database: %v", err)
+			t.Fatalf(failedToInitDB, err)
 		}
 
 		// Verify connection is established
@@ -176,7 +183,7 @@ func TestSQLiteQueryAndExec(t *testing.T) {
 
 	err := db.InitDB()
 	if err != nil {
-		t.Fatalf("Failed to initialize database: %v", err)
+		t.Fatalf(failedToInitDB, err)
 	}
 
 	t.Run("Exec inserts data", func(t *testing.T) {
@@ -184,7 +191,7 @@ func TestSQLiteQueryAndExec(t *testing.T) {
 		userID := "test-user-exec-" + t.Name()
 		username := "testuser-exec-" + t.Name()
 		result, err := db.Exec("INSERT INTO users (id, username, email) VALUES (?, ?, ?)",
-			userID, username, "test@example.com")
+			userID, username, testEmail)
 		if err != nil {
 			t.Fatalf("Failed to insert user: %v", err)
 		}
@@ -204,7 +211,7 @@ func TestSQLiteQueryAndExec(t *testing.T) {
 		userID := "test-user-query-" + t.Name()
 		username := "testuser-query-" + t.Name()
 		_, err := db.Exec("INSERT INTO users (id, username, email) VALUES (?, ?, ?)",
-			userID, username, "test@example.com")
+			userID, username, testEmail)
 		if err != nil {
 			t.Fatalf("Failed to insert user for query test: %v", err)
 		}
@@ -232,7 +239,7 @@ func TestSQLiteQueryAndExec(t *testing.T) {
 		if queriedUsername != username {
 			t.Errorf("Expected username %q, got %s", username, queriedUsername)
 		}
-		if email != "test@example.com" {
+		if email != testEmail {
 			t.Errorf("Expected email 'test@example.com', got %s", email)
 		}
 	})
@@ -243,7 +250,7 @@ func TestSQLiteQueryAndExec(t *testing.T) {
 		userID := "test-user-for-post-" + t.Name()
 
 		// First insert a user for the post
-		_, err := db.Exec("INSERT INTO users (id, username) VALUES (?, ?)", userID, "user-"+t.Name())
+		_, err := db.Exec(insertUserUsername, userID, "user-"+t.Name())
 		if err != nil {
 			t.Fatalf("Failed to insert user for post test: %v", err)
 		}
@@ -291,7 +298,7 @@ func TestSQLiteQueryAndExec(t *testing.T) {
 		userID := "test-user-for-draft-" + t.Name()
 
 		// First insert a user for the draft
-		_, err := db.Exec("INSERT INTO users (id, username) VALUES (?, ?)", userID, "user-"+t.Name())
+		_, err := db.Exec(insertUserUsername, userID, "user-"+t.Name())
 		if err != nil {
 			t.Fatalf("Failed to insert user for draft test: %v", err)
 		}
@@ -346,7 +353,7 @@ func TestSQLiteErrorHandling(t *testing.T) {
 			}
 		}()
 
-		db.Query("SELECT 1") // This will panic due to nil connection
+		db.Query(select1) // This will panic due to nil connection
 	})
 
 	t.Run("Exec on uninitialized database", func(t *testing.T) {
@@ -360,7 +367,7 @@ func TestSQLiteErrorHandling(t *testing.T) {
 			}
 		}()
 
-		db.Exec("SELECT 1") // This will panic due to nil connection
+		db.Exec(select1) // This will panic due to nil connection
 	})
 
 	t.Run("Invalid SQL query", func(t *testing.T) {
@@ -369,7 +376,7 @@ func TestSQLiteErrorHandling(t *testing.T) {
 
 		err := db.InitDB()
 		if err != nil {
-			t.Fatalf("Failed to initialize database: %v", err)
+			t.Fatalf(failedToInitDB, err)
 		}
 
 		_, err = db.Query("INVALID SQL SYNTAX")
@@ -384,7 +391,7 @@ func TestSQLiteErrorHandling(t *testing.T) {
 
 		err := db.InitDB()
 		if err != nil {
-			t.Fatalf("Failed to initialize database: %v", err)
+			t.Fatalf(failedToInitDB, err)
 		}
 
 		_, err = db.Exec("INVALID SQL SYNTAX")
@@ -399,18 +406,18 @@ func TestSQLiteErrorHandling(t *testing.T) {
 
 		err := db.InitDB()
 		if err != nil {
-			t.Fatalf("Failed to initialize database: %v", err)
+			t.Fatalf(failedToInitDB, err)
 		}
 
 		// Insert user with unique username for this test
 		testUsername := "constraint-test-" + t.Name()
-		_, err = db.Exec("INSERT INTO users (id, username) VALUES (?, ?)", "user1-"+t.Name(), testUsername)
+		_, err = db.Exec(insertUserUsername, "user1-"+t.Name(), testUsername)
 		if err != nil {
 			t.Fatalf("Failed to insert first user: %v", err)
 		}
 
 		// Try to insert another user with same username (should violate UNIQUE constraint)
-		_, err = db.Exec("INSERT INTO users (id, username) VALUES (?, ?)", "user2-"+t.Name(), testUsername)
+		_, err = db.Exec(insertUserUsername, "user2-"+t.Name(), testUsername)
 		if err == nil {
 			t.Error("Expected constraint violation error for duplicate username")
 		}
@@ -429,7 +436,7 @@ func TestSQLiteClose(t *testing.T) {
 
 		err := db.InitDB()
 		if err != nil {
-			t.Fatalf("Failed to initialize database: %v", err)
+			t.Fatalf(failedToInitDB, err)
 		}
 
 		err = db.Close()
@@ -461,7 +468,7 @@ func TestSQLiteClose(t *testing.T) {
 
 		err := db.InitDB()
 		if err != nil {
-			t.Fatalf("Failed to initialize database: %v", err)
+			t.Fatalf(failedToInitDB, err)
 		}
 
 		err = db.Close()
@@ -490,7 +497,7 @@ func TestSQLiteGet(t *testing.T) {
 	t.Run("Get after init returns connection", func(t *testing.T) {
 		err := db.InitDB()
 		if err != nil {
-			t.Fatalf("Failed to initialize database: %v", err)
+			t.Fatalf(failedToInitDB, err)
 		}
 
 		conn := db.Get()
@@ -524,12 +531,12 @@ func TestDbInterface(t *testing.T) {
 		t.Error("Interface Get returned nil")
 	}
 
-	_, err = db.Query("SELECT 1")
+	_, err = db.Query(select1)
 	if err != nil {
 		t.Errorf("Interface Query failed: %v", err)
 	}
 
-	_, err = db.Exec("SELECT 1")
+	_, err = db.Exec(select1)
 	if err != nil {
 		t.Errorf("Interface Exec failed: %v", err)
 	}
@@ -557,7 +564,7 @@ func TestDatabaseCreationWithCustomPath(t *testing.T) {
 
 		err := db.InitDB()
 		if err != nil {
-			t.Fatalf("Failed to initialize database: %v", err)
+			t.Fatalf(failedToInitDB, err)
 		}
 
 		// Check that the database file was created
@@ -580,12 +587,12 @@ func BenchmarkSQLiteOperations(b *testing.B) {
 
 	err := db.InitDB()
 	if err != nil {
-		b.Fatalf("Failed to initialize database: %v", err)
+		b.Fatalf(failedToInitDB, err)
 	}
 
 	b.Run("Insert", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
-			_, err := db.Exec("INSERT INTO users (id, username) VALUES (?, ?)",
+			_, err := db.Exec(insertUserUsername,
 				b.Name()+"-user-"+string(rune(i)), "user"+string(rune(i)))
 			if err != nil {
 				b.Errorf("Failed to insert user: %v", err)
