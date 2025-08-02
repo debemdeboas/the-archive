@@ -32,7 +32,7 @@ Editing "{{.Post.Title}}" - {{ $.SiteName }}
     {{if .HxPostURL}}hx-post="{{.HxPostURL}}"
     hx-trigger="keyup changed delay:1ms, load"
     hx-target="#post-content"
-    hx-vals='{"draft-id": "{{.Post.Id}}"}'{{end}}
+    hx-vals='{"draft-id": "{{.Post.ID}}"}'{{end}}
 >{{.Post.Markdown | printf "%s"}}</textarea>
 
 {{if .LivePreviewEnabled}}
