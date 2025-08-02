@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/debemdeboas/the-archive/internal/config"
+	"github.com/debemdeboas/the-archive/internal/routes"
 )
 
 // RegisterEd25519AuthRoutes registers all the routes needed for RSA authentication

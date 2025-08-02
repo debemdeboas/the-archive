@@ -16,7 +16,7 @@ func NewSQLite() *SQLite {
 	}
 }
 
-func (s *SQLite) InitDb() error {
+func (s *SQLite) InitDB() error {
 	var err error
 	s.conn, err = sql.Open("sqlite3", "./database.db?_time_format=auto")
 	if err != nil {

@@ -3,9 +3,9 @@ Editing "{{.Post.Title}}" - {{ $.SiteName }}
 {{end}}
 
 {{define "navbar-left"}}
-{{ if .HxSaveUrl }}
+{{ if .HxSaveURL }}
 <div class="title-wrapper" data-tooltip="Save">
-  <button hx-{{.HxSaveMethod}}="{{.HxSaveUrl}}" hx-trigger="click" hx-swap="none" hx-include="#editor-content">
+  <button hx-{{.HxSaveMethod}}="{{.HxSaveURL}}" hx-trigger="click" hx-swap="none" hx-include="#editor-content">
     <i class="fas fa-save"></i>
   </button>
 </div>
@@ -29,7 +29,7 @@ Editing "{{.Post.Title}}" - {{ $.SiteName }}
 <textarea
     id="editor-content"
     name="content"
-    {{if .HxPostUrl}}hx-post="{{.HxPostUrl}}"
+    {{if .HxPostURL}}hx-post="{{.HxPostURL}}"
     hx-trigger="keyup changed delay:1ms, load"
     hx-target="#post-content"
     hx-vals='{"draft-id": "{{.Post.Id}}"}'{{end}}

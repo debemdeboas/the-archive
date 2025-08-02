@@ -42,7 +42,7 @@ func main() {
 
 	// Initialize database connection
 	database := db.NewSQLite()
-	if err := database.InitDb(); err != nil {
+	if err := database.InitDB(); err != nil {
 		log.Fatalf("Error initializing database: %v", err)
 	}
 	defer database.Close()

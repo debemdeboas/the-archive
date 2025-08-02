@@ -10,15 +10,15 @@ import (
 )
 
 type PageData struct {
-	SiteName    string
-	SiteTagline string
+	SiteName        string
+	SiteTagline     string
 	SiteDescription string
-	SiteKeywords []string
-	SiteAuthor   string
+	SiteKeywords    []string
+	SiteAuthor      string
 
 	PageURL string
 
-	Theme           string
+	Theme               string
 	AllowThemeSwitching bool
 	EditorEnabled       bool
 	LivePreviewEnabled  bool
@@ -52,7 +52,7 @@ func NewPageData(r *http.Request) *PageData {
 
 func (pd *PageData) IsPost() bool {
 	if pd.ShowToolbar == nil {
-		return strings.HasPrefix(pd.PageURL, config.PostsUrlPath)
+		return strings.HasPrefix(pd.PageURL, config.PostsURLPath)
 	}
 	return *pd.ShowToolbar
 }

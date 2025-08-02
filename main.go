@@ -24,6 +24,7 @@ import (
 	"github.com/debemdeboas/the-archive/internal/render"
 	"github.com/debemdeboas/the-archive/internal/repository"
 	"github.com/debemdeboas/the-archive/internal/repository/editor"
+	"github.com/debemdeboas/the-archive/internal/routes"
 	"github.com/debemdeboas/the-archive/internal/sse"
 	"github.com/debemdeboas/the-archive/internal/theme"
 	"github.com/debemdeboas/the-archive/internal/util"
@@ -34,7 +35,7 @@ var content embed.FS
 
 type Application struct {
 	log           zerolog.Logger
-	db            db.Db
+	db            db.DB
 	postRepo      repository.PostRepository
 	editorRepo    editor.Repository
 	editorHandler *editor.Handler
@@ -60,11 +61,11 @@ func main() {
 	auth.SetLogger(log)
 
 	database := db.NewSQLite()
-	if err := database.InitDb(); err != nil {
+	if err := database.InitDB(); err != nil {
 		log.Fatal().Err(err).Msg("Error initializing database")
 	}
 
-	postRepo := repository.NewDbPostRepository(database)
+	postRepo := repository.NewDBPostRepository(database)
 	editorRepo := editor.NewMemoryRepository()
 	clients := sse.NewSSEClients()
 	editorHandler := editor.NewHandler(editorRepo, clients, &content)
@@ -72,7 +73,7 @@ func main() {
 	authProvider, err := auth.NewEd25519AuthProvider(
 		os.Getenv("ED25519_PUBKEY"),
 		"Authorization",
-		model.UserId("admin"),
+		model.UserID("admin"),
 	)
 	if err != nil {
 		log.Error().Err(err).Msg("Error starting ED25519 auth provider")
@@ -236,7 +237,7 @@ func loggingMiddleware(log zerolog.Logger) func(http.Handler) http.Handler {
 }
 
 func (app *Application) ServeEditPost(w http.ResponseWriter, r *http.Request) {
-	usrId, err := app.authProvider.GetUserIdFromSession(r)
+	usrID, err := app.authProvider.GetUserIDFromSession(r)
 	if err != nil {
 		if r.Header.Get("Hx-Request") == "" {
 			http.Redirect(w, r, "/auth/login?redirect="+url.QueryEscape(r.URL.String()), http.StatusFound)
@@ -245,7 +246,7 @@ func (app *Application) ServeEditPost(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add(config.HHxRedirect, "/auth/login?redirect="+url.QueryEscape(r.URL.String()))
 		return
 	}
-	postID := strings.TrimPrefix(r.URL.Path, "/edit/post/")
+	postID := strings.TrimPrefix(r.URL.Path, routes.EditPost)
 	if postID == "" {
 		http.NotFound(w, r)
 		return
@@ -255,9 +256,9 @@ func (app *Application) ServeEditPost(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	if usrId != post.Owner {
+	if usrID != post.Owner {
 		l := zerolog.Ctx(r.Context())
-		l.Warn().Str("user_id", string(usrId)).Str("post_id", postID).Msg("Unauthorized attempt to edit post")
+		l.Warn().Str("user_id", string(usrID)).Str("post_id", postID).Msg("Unauthorized attempt to edit post")
 		w.Header().Add(config.HHxRedirect, r.Header.Get("Referer"))
 		return
 	}
@@ -266,13 +267,13 @@ func (app *Application) ServeEditPost(w http.ResponseWriter, r *http.Request) {
 
 func (app *Application) midWithDraftSaving(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		draftId := r.FormValue("draft-id")
-		if draftId == "" {
+		draftID := r.FormValue("draft-id")
+		if draftID == "" {
 			next.ServeHTTP(w, r)
 			return
 		}
 		content := r.FormValue("content")
-		if err := app.editorRepo.SaveDraft(editor.DraftId(draftId), []byte(content)); err != nil {
+		if err := app.editorRepo.SaveDraft(editor.DraftID(draftID), []byte(content)); err != nil {
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -282,7 +283,7 @@ func (app *Application) midWithDraftSaving(next http.HandlerFunc) http.HandlerFu
 
 func (app *Application) midWithPostSaving(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		postID := strings.TrimPrefix(r.URL.Path, "/edit/post/")
+		postID := strings.TrimPrefix(r.URL.Path, routes.EditPost)
 		if postID == "" {
 			http.NotFound(w, r)
 			return
@@ -340,7 +341,7 @@ func (app *Application) serveIndex(w http.ResponseWriter, r *http.Request) {
 		Posts     []model.Post
 	}{
 		PageData:  model.NewPageData(r),
-		PostsPath: config.PostsUrlPath,
+		PostsPath: config.PostsURLPath,
 		Posts:     posts,
 	}
 	w.Header().Set(config.HETag, util.ContentHash([]byte(data.Theme+data.SyntaxTheme)))
@@ -351,7 +352,7 @@ func (app *Application) serveIndex(w http.ResponseWriter, r *http.Request) {
 }
 
 func (app *Application) servePost(w http.ResponseWriter, r *http.Request) {
-	postID := strings.TrimPrefix(r.URL.Path, config.PostsUrlPath)
+	postID := strings.TrimPrefix(r.URL.Path, config.PostsURLPath)
 	if postID == "" {
 		http.NotFound(w, r)
 		return
@@ -451,7 +452,7 @@ func (app *Application) eventsHandler(w http.ResponseWriter, r *http.Request) {
 	flusher.Flush()
 	client := &sse.Client{
 		Msg:    make(chan string),
-		PostId: model.PostId(postID),
+		PostID: model.PostID(postID),
 	}
 	app.clients.Add(client)
 	l.Debug().Str("remote_addr", r.RemoteAddr).Msg("New SSE client connected")
@@ -471,13 +472,13 @@ func (app *Application) eventsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (app *Application) handleReloadPost(postID model.PostId) {
+func (app *Application) handleReloadPost(postID model.PostID) {
 	go app.clients.Broadcast(postID, "reload")
 }
 
-func (app *Application) handleApiPosts(w http.ResponseWriter, r *http.Request) {
+func (app *Application) handleAPIPosts(w http.ResponseWriter, r *http.Request) {
 	l := zerolog.Ctx(r.Context())
-	usrID, err := app.authProvider.EnforceUserAndGetId(w, r)
+	usrID, err := app.authProvider.EnforceUserAndGetID(w, r)
 	if err != nil {
 		l.Error().Err(err).Str("method", r.Method).Str("path", r.URL.Path).Msg("Unauthorized access attempt")
 		http.Error(w, "Unauthorized", http.StatusUnauthorized)
@@ -486,7 +487,7 @@ func (app *Application) handleApiPosts(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodPost:
 		draftID := r.PathValue("id")
-		if _, err := app.editorRepo.GetDraft(editor.DraftId(draftID)); err != nil {
+		if _, err := app.editorRepo.GetDraft(editor.DraftID(draftID)); err != nil {
 			http.Error(w, "Draft not found", http.StatusNotFound)
 			return
 		}
@@ -494,7 +495,7 @@ func (app *Application) handleApiPosts(w http.ResponseWriter, r *http.Request) {
 		post := app.postRepo.NewPost()
 		post.Markdown = []byte(content)
 		post.Owner = usrID
-		post.Path = string(post.Id)
+		post.Path = string(post.ID)
 		frontMatter := util.GetFrontMatter(post.Markdown)
 		if frontMatter != nil && frontMatter.Title != "" {
 			post.Title = frontMatter.Title
@@ -502,7 +503,7 @@ func (app *Application) handleApiPosts(w http.ResponseWriter, r *http.Request) {
 			post.Title = "Untitled - " + post.CreatedDate.Format("2006-01-02")
 		}
 		if err := app.postRepo.SavePost(post); err != nil {
-			l.Error().Err(err).Str("post_id", string(post.Id)).Str("user_id", string(usrID)).Msg("Failed to save post")
+			l.Error().Err(err).Str("post_id", string(post.ID)).Str("user_id", string(usrID)).Msg("Failed to save post")
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -523,7 +524,7 @@ func (app *Application) handleApiPosts(w http.ResponseWriter, r *http.Request) {
 			post.Title = frontMatter.Title
 		}
 		if err := app.postRepo.SetPostContent(post); err != nil {
-			l.Error().Err(err).Str("post_id", string(post.Id)).Str("user_id", string(usrID)).Msg("Failed to set post content")
+			l.Error().Err(err).Str("post_id", string(post.ID)).Str("user_id", string(usrID)).Msg("Failed to set post content")
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}

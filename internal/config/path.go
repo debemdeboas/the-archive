@@ -4,10 +4,10 @@ const (
 	//? These paths must match the paths in the embed directive
 
 	StaticLocalDir = "static"
-	StaticUrlPath  = "/" + StaticLocalDir + "/"
+	StaticURLPath  = "/" + StaticLocalDir + "/"
 
 	PostsLocalDir = "posts"
-	PostsUrlPath  = "/" + PostsLocalDir + "/"
+	PostsURLPath  = "/" + PostsLocalDir + "/"
 
 	TemplatesLocalDir = "templates"
 
@@ -15,4 +15,7 @@ const (
 	TemplateIndex  = "index.html"
 	TemplatePost   = "post.html"
 	TemplateEditor = "editor.html"
+
+	// Template names (without .html extension)
+	TemplateNameAuth = "ed25519_auth"
 )

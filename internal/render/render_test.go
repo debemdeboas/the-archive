@@ -30,14 +30,6 @@ func assertCacheEntry(t *testing.T, contentHash, syntaxTheme string, expectedHTM
 	}
 }
 
-func assertNotCached(t *testing.T, contentHash, syntaxTheme string) {
-	t.Helper()
-	_, found := cache.GetRenderedMarkdown(contentHash, syntaxTheme)
-	if found {
-		t.Errorf("Expected content NOT to be cached for hash:%s theme:%s", contentHash, syntaxTheme)
-	}
-}
-
 func TestRenderMarkdownCached(t *testing.T) {
 	tests := []struct {
 		name        string

@@ -8,7 +8,7 @@ import (
 
 type Client struct {
 	Msg    chan string
-	PostId model.PostId
+	PostID model.PostID
 }
 
 type SSEClients struct {
@@ -35,11 +35,11 @@ func (s *SSEClients) Delete(client *Client) {
 	close(client.Msg)
 }
 
-func (s *SSEClients) Broadcast(postID model.PostId, msg string) {
+func (s *SSEClients) Broadcast(postID model.PostID, msg string) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	for client := range s.clients {
-		if client.PostId == postID {
+		if client.PostID == postID {
 			select {
 			case client.Msg <- msg:
 			default:

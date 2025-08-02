@@ -35,8 +35,8 @@ func (h *Handler) ServeNewDraftEditor(w http.ResponseWriter, r *http.Request) {
 
 	var draft *Draft = nil
 	if cookie, err := r.Cookie(config.CookieDraftID); err == nil {
-		draftId := DraftId(cookie.Value)
-		draft, _ = h.repo.GetDraft(draftId)
+		draftID := DraftID(cookie.Value)
+		draft, _ = h.repo.GetDraft(draftID)
 	}
 
 	if draft == nil {
@@ -48,31 +48,31 @@ func (h *Handler) ServeNewDraftEditor(w http.ResponseWriter, r *http.Request) {
 
 		http.SetCookie(w, &http.Cookie{
 			Name:  config.CookieDraftID,
-			Value: string(draft.Id),
+			Value: string(draft.ID),
 			Path:  "/",
 		})
 	}
 
-	saveUrl := "/api/posts/" + string(draft.Id)
+	saveURL := "/api/posts/" + string(draft.ID)
 	saveMethod := "POST"
 
 	pageData := model.NewPageData(r)
-	hxPostUrl := ""
+	hxPostURL := ""
 	if pageData.LivePreviewEnabled {
-		hxPostUrl = "/partials/draft/preview"
+		hxPostURL = "/partials/draft/preview"
 	}
-	
+
 	data := struct {
 		*model.PageData
 		*model.Post
-		HxPostUrl    string
-		HxSaveUrl    *string
+		HxPostURL    string
+		HxSaveURL    *string
 		HxSaveMethod *string
 	}{
 		PageData:     pageData,
-		Post:         &model.Post{Id: model.PostId(draft.Id), Markdown: draft.Content},
-		HxPostUrl:    hxPostUrl,
-		HxSaveUrl:    &saveUrl,
+		Post:         &model.Post{ID: model.PostID(draft.ID), Markdown: draft.Content},
+		HxPostURL:    hxPostURL,
+		HxSaveURL:    &saveURL,
 		HxSaveMethod: &saveMethod,
 	}
 
@@ -94,26 +94,26 @@ func (h *Handler) ServeEditPostEditor(w http.ResponseWriter, r *http.Request, po
 		return
 	}
 
-	saveUrl := "/api/posts/" + string(post.Id)
+	saveURL := "/api/posts/" + string(post.ID)
 	savePut := "PUT"
 
 	pageData := model.NewPageData(r)
-	hxPostUrl := ""
+	hxPostURL := ""
 	if pageData.LivePreviewEnabled {
-		hxPostUrl = "/partials/post/preview"
+		hxPostURL = "/partials/post/preview"
 	}
-	
+
 	data := struct {
 		*model.PageData
 		*model.Post
-		HxPostUrl    string
-		HxSaveUrl    *string
+		HxPostURL    string
+		HxSaveURL    *string
 		HxSaveMethod *string
 	}{
 		PageData:     pageData,
 		Post:         post,
-		HxPostUrl:    hxPostUrl,
-		HxSaveUrl:    &saveUrl,
+		HxPostURL:    hxPostURL,
+		HxSaveURL:    &saveURL,
 		HxSaveMethod: &savePut,
 	}
 

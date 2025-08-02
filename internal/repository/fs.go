@@ -19,7 +19,7 @@ type FSPostRepository struct { // implements PostRepository
 	postsCache       *cache.Cache[string, *model.Post]
 	postsCacheSorted []model.Post
 
-	reloadNotifier func(model.PostId)
+	reloadNotifier func(model.PostID)
 }
 
 func NewFSPostRepository(postsPath string) *FSPostRepository {
@@ -29,11 +29,11 @@ func NewFSPostRepository(postsPath string) *FSPostRepository {
 	}
 }
 
-func (r *FSPostRepository) SetReloadNotifier(notifier func(model.PostId)) {
+func (r *FSPostRepository) SetReloadNotifier(notifier func(model.PostID)) {
 	r.reloadNotifier = notifier
 }
 
-func (r *FSPostRepository) notifyPostReload(postID model.PostId) {
+func (r *FSPostRepository) notifyPostReload(postID model.PostID) {
 	if r.reloadNotifier != nil {
 		r.reloadNotifier(postID)
 	}
@@ -85,7 +85,7 @@ func (r *FSPostRepository) GetPosts() ([]model.Post, map[string]*model.Post, err
 			}
 
 			post := model.Post{
-				Id:            model.PostId(util.ContentHashString(name)),
+				ID:            model.PostID(util.ContentHashString(name)),
 				Title:         name,
 				Markdown:      mdContent,
 				MDContentHash: util.ContentHash(mdContent),
@@ -94,7 +94,7 @@ func (r *FSPostRepository) GetPosts() ([]model.Post, map[string]*model.Post, err
 			}
 
 			posts = append(posts, post)
-			postsMap[string(post.Id)] = &post
+			postsMap[string(post.ID)] = &post
 		}
 	}
 
@@ -119,13 +119,13 @@ func (r *FSPostRepository) ReloadPosts() {
 			repoLogger.Error().Err(err).Msg("Error reloading posts")
 		} else {
 			for _, post := range r.postsCacheSorted {
-				if newPost, ok := postMap[string(post.Id)]; ok {
+				if newPost, ok := postMap[string(post.ID)]; ok {
 					if newPost.MDContentHash != post.MDContentHash {
 						repoLogger.Info().
-							Str("post_id", string(post.Id)).
+							Str("post_id", string(post.ID)).
 							Str("title", post.Title).
 							Msg("Reloading post")
-						go r.notifyPostReload(post.Id)
+						go r.notifyPostReload(post.ID)
 					}
 				}
 			}

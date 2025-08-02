@@ -5,6 +5,7 @@ import (
 	"html"
 	"io"
 	"strings"
+	"sync"
 
 	"github.com/alecthomas/chroma/v2"
 	"github.com/alecthomas/chroma/v2/lexers"

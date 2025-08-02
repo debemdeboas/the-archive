@@ -17,7 +17,7 @@ type PostRepository interface {
 	SetPostContent(post *model.Post) error
 
 	// SetReloadNotifier sets a function that will be called when the posts are reloaded.
-	SetReloadNotifier(notifier func(model.PostId))
+	SetReloadNotifier(notifier func(model.PostID))
 }
 
 var repoLogger zerolog.Logger

@@ -1,3 +1,3 @@
 package model
 
-type UserId string
+type UserID string

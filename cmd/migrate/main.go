@@ -19,20 +19,20 @@ import (
 func main() {
 	// Define command-line flags
 	path := flag.String("path", "", "Path to the directory containing .md files")
-	ownerId := flag.String("owner-id", "", "Owner user ID for the posts")
+	ownerID := flag.String("owner-id", "", "Owner user ID for the posts")
 	flag.Parse()
 
 	// Validate required flags
-	if *path == "" || *ownerId == "" {
+	if *path == "" || *ownerID == "" {
 		log.Fatal("Both --path and --owner-id flags are required")
 	}
 
 	// Initialize the SQLite database and ensure tables exist
-	Db := db.NewSQLite()
-	Db.InitDb()
+	DB := db.NewSQLite()
+	DB.InitDB()
 
 	// Create a repository instance to interact with the database
-	repo := repository.NewDbPostRepository(Db)
+	repo := repository.NewDBPostRepository(DB)
 
 	// Read all files from the specified directory
 	files, err := os.ReadDir(*path)
@@ -43,7 +43,7 @@ func main() {
 	// Process each .md file
 	for _, file := range files {
 		if !file.IsDir() && strings.HasSuffix(file.Name(), ".md") {
-			err := processFile(*path, file, repo, *ownerId)
+			err := processFile(*path, file, repo, *ownerID)
 			if err != nil {
 				log.Printf("Error processing file %s: %v", file.Name(), err)
 				continue
@@ -54,7 +54,7 @@ func main() {
 }
 
 // processFile handles the migration of a single .md file to the database.
-func processFile(dirPath string, file os.DirEntry, repo repository.PostRepository, ownerId string) error {
+func processFile(dirPath string, file os.DirEntry, repo repository.PostRepository, ownerID string) error {
 	filePath := filepath.Join(dirPath, file.Name())
 
 	content, err := os.ReadFile(filePath)
@@ -87,15 +87,15 @@ func processFile(dirPath string, file os.DirEntry, repo repository.PostRepositor
 
 	// Create a new post struct
 	post := &model.Post{
-		Id:           model.PostId(uuid.New().String()),
+		ID:           model.PostID(uuid.New().String()),
 		Title:        title,
 		Markdown:     content,
 		CreatedDate:  createdDate,
 		ModifiedDate: modifiedDate,
-		Owner:        model.UserId(ownerId),
+		Owner:        model.UserID(ownerID),
 		Path:         "",
 	}
-	post.Path = string(post.Id)
+	post.Path = string(post.ID)
 
 	// Save the post to the database
 	return repo.SavePost(post)

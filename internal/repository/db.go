@@ -14,19 +14,19 @@ import (
 	"github.com/google/uuid"
 )
 
-type DbPostRepository struct { // implements PostRepository
+type DBPostRepository struct { // implements PostRepository
 	postsCache       *cache.Cache[string, *model.Post]
 	postsCacheSorted []model.Post
 
-	reloadNotifier   func(model.PostId)
+	reloadNotifier   func(model.PostID)
 	lastModifiedTime *time.Time // Track the latest modification time
 
-	db         db.Db
+	db         db.DB
 	compressor compression.Compressor
 }
 
-func NewDbPostRepository(db db.Db) *DbPostRepository {
-	return &DbPostRepository{
+func NewDBPostRepository(db db.DB) *DBPostRepository {
+	return &DBPostRepository{
 		postsCache: cache.NewCache[string, *model.Post](),
 
 		db: db,
@@ -35,7 +35,7 @@ func NewDbPostRepository(db db.Db) *DbPostRepository {
 	}
 }
 
-func (r *DbPostRepository) Init() {
+func (r *DBPostRepository) Init() {
 	posts, postMap, err := r.GetPosts()
 	if err != nil {
 		repoLogger.Fatal().Err(err).Msg("Error initializing posts")
@@ -47,7 +47,7 @@ func (r *DbPostRepository) Init() {
 	go r.ReloadPosts()
 }
 
-func (r *DbPostRepository) GetLatestModifiedTime() (*time.Time, error) {
+func (r *DBPostRepository) GetLatestModifiedTime() (*time.Time, error) {
 	var latestTimeStr sql.NullString
 	row := r.db.Get().QueryRow(`SELECT MAX(modified_at) FROM posts`)
 	err := row.Scan(&latestTimeStr)
@@ -79,7 +79,7 @@ func (r *DbPostRepository) GetLatestModifiedTime() (*time.Time, error) {
 	return nil, fmt.Errorf("error parsing latest modified time '%s' with any known format: %w", latestTimeStr.String, parseErr)
 }
 
-func (r *DbPostRepository) GetPosts() ([]model.Post, map[string]*model.Post, error) {
+func (r *DBPostRepository) GetPosts() ([]model.Post, map[string]*model.Post, error) {
 	rows, err := r.db.Query(`SELECT id, title, content, md_content_hash, created_at, modified_at, user_id FROM posts`)
 	if err != nil {
 		return nil, nil, fmt.Errorf("error querying posts: %w", err)
@@ -94,7 +94,7 @@ func (r *DbPostRepository) GetPosts() ([]model.Post, map[string]*model.Post, err
 		var post model.Post
 		var compressed []byte
 
-		err := rows.Scan(&post.Id, &post.Title, &compressed, &post.MDContentHash, &post.CreatedDate, &post.ModifiedDate, &post.Owner)
+		err := rows.Scan(&post.ID, &post.Title, &compressed, &post.MDContentHash, &post.CreatedDate, &post.ModifiedDate, &post.Owner)
 		if err != nil {
 			return nil, nil, fmt.Errorf("error scanning post: %w", err)
 		}
@@ -112,7 +112,7 @@ func (r *DbPostRepository) GetPosts() ([]model.Post, map[string]*model.Post, err
 		post.Markdown = content
 
 		posts = append(posts, post)
-		postMap[string(post.Id)] = &post
+		postMap[string(post.ID)] = &post
 	}
 
 	// Update our tracked modification time
@@ -126,11 +126,11 @@ func (r *DbPostRepository) GetPosts() ([]model.Post, map[string]*model.Post, err
 	return posts, postMap, nil
 }
 
-func (r *DbPostRepository) GetPostList() []model.Post {
+func (r *DBPostRepository) GetPostList() []model.Post {
 	return r.postsCacheSorted
 }
 
-func (r *DbPostRepository) ReadPost(id any) (*model.Post, error) {
+func (r *DBPostRepository) ReadPost(id any) (*model.Post, error) {
 	post, ok := r.postsCache.Get(id.(string))
 	if !ok {
 		return nil, fmt.Errorf("post not found: %s", id)
@@ -138,7 +138,7 @@ func (r *DbPostRepository) ReadPost(id any) (*model.Post, error) {
 	return post, nil
 }
 
-func (r *DbPostRepository) ReloadPosts() {
+func (r *DBPostRepository) ReloadPosts() {
 	sleepFunc := func() {
 		time.Sleep(10 * time.Second)
 	}
@@ -172,28 +172,28 @@ func (r *DbPostRepository) ReloadPosts() {
 			// Create a map of current cached posts for quick lookup
 			cachedPosts := make(map[string]*model.Post)
 			for i := range r.postsCacheSorted {
-				cachedPosts[string(r.postsCacheSorted[i].Id)] = &r.postsCacheSorted[i]
+				cachedPosts[string(r.postsCacheSorted[i].ID)] = &r.postsCacheSorted[i]
 			}
 
 			// Check for new or modified posts
 			for _, newPost := range posts {
-				if cachedPost, exists := cachedPosts[string(newPost.Id)]; exists {
+				if cachedPost, exists := cachedPosts[string(newPost.ID)]; exists {
 					// Compare content hashes to detect changes
 					if newPost.MDContentHash != cachedPost.MDContentHash {
 						hasChanges = true
 						repoLogger.Info().
-							Str("post_id", string(newPost.Id)).
+							Str("post_id", string(newPost.ID)).
 							Str("title", newPost.Title).
 							Msg("Post content changed, reloading")
 						if r.reloadNotifier != nil {
-							go r.reloadNotifier(newPost.Id)
+							go r.reloadNotifier(newPost.ID)
 						}
 					}
 				} else {
 					// New post detected
 					hasChanges = true
 					repoLogger.Info().
-						Str("post_id", string(newPost.Id)).
+						Str("post_id", string(newPost.ID)).
 						Str("title", newPost.Title).
 						Msg("New post detected")
 				}
@@ -216,22 +216,22 @@ func (r *DbPostRepository) ReloadPosts() {
 	}
 }
 
-func (r *DbPostRepository) SetReloadNotifier(notifier func(model.PostId)) {
+func (r *DBPostRepository) SetReloadNotifier(notifier func(model.PostID)) {
 	r.reloadNotifier = notifier
 }
 
-func (r *DbPostRepository) NewPost() *model.Post {
+func (r *DBPostRepository) NewPost() *model.Post {
 	now := time.Now().UTC()
 
 	return &model.Post{
-		Id: model.PostId(uuid.New().String()),
+		ID: model.PostID(uuid.New().String()),
 
 		CreatedDate:  now,
 		ModifiedDate: now,
 	}
 }
 
-func (r *DbPostRepository) SetPostContent(post *model.Post) error {
+func (r *DBPostRepository) SetPostContent(post *model.Post) error {
 	// Compress the content
 	compressed, err := r.compressor.Compress([]byte(post.Markdown))
 	if err != nil {
@@ -244,7 +244,7 @@ func (r *DbPostRepository) SetPostContent(post *model.Post) error {
 	// Save the post
 	res, err := r.db.Exec(
 		`UPDATE posts SET title = ?, content = ?, md_content_hash = ?, modified_at = ? WHERE id = ?`,
-		post.Title, compressed, post.MDContentHash, time.Now().UTC(), post.Id,
+		post.Title, compressed, post.MDContentHash, time.Now().UTC(), post.ID,
 	)
 
 	if err != nil {
@@ -256,7 +256,7 @@ func (r *DbPostRepository) SetPostContent(post *model.Post) error {
 	return nil
 }
 
-func (r *DbPostRepository) SavePost(post *model.Post) error {
+func (r *DBPostRepository) SavePost(post *model.Post) error {
 	// Compress the content
 	compressed, err := r.compressor.Compress([]byte(post.Markdown))
 	if err != nil {
@@ -269,7 +269,7 @@ func (r *DbPostRepository) SavePost(post *model.Post) error {
 	// Save the post
 	res, err := r.db.Exec(
 		`INSERT INTO posts (id, title, content, md_content_hash, created_at, modified_at, user_id) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-		post.Id, post.Title, compressed, post.MDContentHash, post.CreatedDate, post.ModifiedDate, post.Owner,
+		post.ID, post.Title, compressed, post.MDContentHash, post.CreatedDate, post.ModifiedDate, post.Owner,
 	)
 
 	if err != nil {

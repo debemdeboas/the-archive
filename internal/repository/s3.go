@@ -20,12 +20,12 @@ type S3PostRepository struct { // implements PostRepository
 	postsCache       *cache.Cache[string, *model.Post]
 	postsCacheSorted []model.Post
 
-	reloadNotifier func(model.PostId)
+	reloadNotifier func(model.PostID)
 }
 
-func NewS3PostRepository(accessKeyId, accessKeySecret, baseEndpoint string) *S3PostRepository {
+func NewS3PostRepository(accessKeyID, accessKeySecret, baseEndpoint string) *S3PostRepository {
 	cfg, err := config.LoadDefaultConfig(context.TODO(),
-		config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(accessKeyId, accessKeySecret, "")),
+		config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(accessKeyID, accessKeySecret, "")),
 		config.WithRegion("auto"),
 	)
 	if err != nil {
@@ -43,11 +43,11 @@ func NewS3PostRepository(accessKeyId, accessKeySecret, baseEndpoint string) *S3P
 	}
 }
 
-func (r *S3PostRepository) SetReloadNotifier(notifier func(model.PostId)) {
+func (r *S3PostRepository) SetReloadNotifier(notifier func(model.PostID)) {
 	r.reloadNotifier = notifier
 }
 
-func (r *S3PostRepository) notifyPostReload(postID model.PostId) {
+func (r *S3PostRepository) notifyPostReload(postID model.PostID) {
 	if r.reloadNotifier != nil {
 		r.reloadNotifier(postID)
 	}
@@ -125,10 +125,10 @@ func (r *S3PostRepository) ReloadPosts() {
 				if newPost, ok := postMap[post.Path]; ok {
 					if newPost.MDContentHash != post.MDContentHash {
 						repoLogger.Info().
-							Str("post_id", string(post.Id)).
+							Str("post_id", string(post.ID)).
 							Str("title", post.Title).
 							Msg("Reloading post")
-						go r.notifyPostReload(model.PostId(post.Path))
+						go r.notifyPostReload(model.PostID(post.Path))
 					}
 				}
 			}

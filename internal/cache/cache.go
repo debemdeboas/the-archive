@@ -44,7 +44,7 @@ func (c *Cache[K, V]) SetTo(items map[K]V) {
 	c.items = items
 }
 
-// Rendered markdown cache
+// RenderedContent represents cached rendered markdown with HTML and extra data.
 type RenderedContent struct {
 	HTML  []byte
 	Extra interface{}
