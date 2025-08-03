@@ -26,6 +26,7 @@ const (
 	
 	// API
 	APIPosts = "/api/posts/{id}"
+	APIImages = "/api/images"
 	
 	// Auth routes
 	AuthChallenge = "/auth/challenge"

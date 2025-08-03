@@ -18,6 +18,8 @@
 
     <script src="https://unpkg.com/htmx.org@2.0.4"></script>
     <script src="https://unpkg.com/htmx-ext-sse@2.2.2/sse.js"></script>
+    <script src="https://unpkg.com/idiomorph@0.7.3" integrity="sha384-JcorokHTL/m+D6ZHe2+yFVQopVwZ+91GxAPDyEZ6/A/OEPGEx1+MeNSe2OGvoRS9" crossorigin="anonymous"></script>
+    <script src="https://unpkg.com/idiomorph@0.7.3/dist/idiomorph-ext.min.js" integrity="sha384-szktAZju9fwY15dZ6D2FKFN4eZoltuXiHStNDJWK9+FARrxJtquql828JzikODob" crossorigin="anonymous"></script>
     <meta name="htmx-config" content='{"withCredentials":true, "scrollBehavior":"auto"}' />
 
     <script src="/static/index.js"></script>
@@ -63,7 +65,7 @@
     <link rel="stylesheet" href="/static/style.css" />
     <link rel="stylesheet" href="/static/markdown.css" />
   </head>
-  <body class="{{.Theme}}">
+  <body class="{{.Theme}}" hx-ext="morph">
     <nav class="navbar">
       <div class="navbar-wrapper">
         <button class="hamburger" onclick="toggleNavbar()">
@@ -85,7 +87,7 @@
       </div>
       <div class="navbar-menu">
         <div class="navbar-left">
-          {{if .IsPost}}
+          {{if and .IsPost .IsAuthenticated}}
           <div id="edit-post" class="title-wrapper" data-tooltip="Edit">
             <button
               hx-get="/edit/post/{{.Post.ID}}"
@@ -113,6 +115,7 @@
           </h1>
         </div>
         <div class="navbar-right">
+          {{if not .IsAuthenticated}}
           <div id="sign-in" class="title-wrapper" data-tooltip="Sign in">
             <button
               hx-get="/auth/login"
@@ -124,7 +127,8 @@
               <i class="fa-solid fa-user-shield"></i>
             </button>
           </div>
-          {{if .EditorEnabled}}
+          {{end}}
+          {{if .DraftsEnabled}}
           {{if .IsEditor}}
           <div
             class="title-wrapper"

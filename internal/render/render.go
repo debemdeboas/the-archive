@@ -63,21 +63,22 @@ func RenderMarkdown(md []byte, highlightTheme string) ([]byte, any) {
 var renderCacheMutex sync.Mutex
 
 func RenderMarkdownCached(md []byte, contentHash, highlightTheme string) ([]byte, any) {
+	if contentHash == "" {
+		renderLogger.Warn().Msg("Content hash is empty, skipping cache check")
+		return RenderMarkdown(md, highlightTheme)
+	}
+
 	// First check cache without locking (fast path for cache hits)
 	if cached, found := cache.GetRenderedMarkdown(contentHash, highlightTheme); found {
+		renderLogger.Debug().Str("contentHash", contentHash).Str("highlightTheme", highlightTheme).Msg("Cache hit for rendered markdown")
 		return cached.HTML, cached.Extra
 	}
 
-	// Cache miss - use mutex to prevent duplicate renders
+	// Cache miss
+	renderLogger.Debug().Str("contentHash", contentHash).Str("highlightTheme", highlightTheme).Msg("Cache miss for rendered markdown")
 	renderCacheMutex.Lock()
 	defer renderCacheMutex.Unlock()
 
-	// Double-check cache after acquiring lock
-	if cached, found := cache.GetRenderedMarkdown(contentHash, highlightTheme); found {
-		return cached.HTML, cached.Extra
-	}
-
-	// Cache miss - render and cache the result
 	html, extra := RenderMarkdown(md, highlightTheme)
 	cache.SetRenderedMarkdown(contentHash, highlightTheme, html, extra)
 
@@ -181,4 +182,13 @@ func RenderMarkdownMmark(md []byte, highlightTheme string) ([]byte, *mast.TitleD
 	x := markdown.Render(doc, renderer)
 
 	return x, info
+}
+
+// WarmCache pre-renders markdown content asynchronously to warm the cache
+func WarmCache(md []byte, contentHash, highlightTheme string) {
+	renderLogger.Debug().Str("contentHash", contentHash).Str("highlightTheme", highlightTheme).Msg("Starting cache warming")
+	go func() {
+		RenderMarkdownCached(md, contentHash, highlightTheme)
+		renderLogger.Debug().Str("contentHash", contentHash).Str("highlightTheme", highlightTheme).Msg("Cache warming completed")
+	}()
 }

@@ -1,6 +1,7 @@
 package model
 
 import (
+	"context"
 	"html/template"
 	"net/http"
 	"strings"
@@ -21,7 +22,9 @@ type PageData struct {
 	Theme               string
 	AllowThemeSwitching bool
 	EditorEnabled       bool
+	DraftsEnabled       bool
 	LivePreviewEnabled  bool
+	IsAuthenticated     bool
 
 	SyntaxCSS    template.CSS
 	SyntaxTheme  string
@@ -31,8 +34,27 @@ type PageData struct {
 	IsEditorPage *bool
 }
 
+// Context key for storing authentication status
+type contextKey string
+
+const AuthStatusKey contextKey = "authStatus"
+
+// WithAuthStatus adds authentication status to context
+func WithAuthStatus(ctx context.Context, isAuthenticated bool) context.Context {
+	return context.WithValue(ctx, AuthStatusKey, isAuthenticated)
+}
+
+// GetAuthStatus gets authentication status from context
+func GetAuthStatus(ctx context.Context) bool {
+	if status, ok := ctx.Value(AuthStatusKey).(bool); ok {
+		return status
+	}
+	return false
+}
+
 func NewPageData(r *http.Request) *PageData {
 	syntaxtheme := theme.GetSyntaxThemeFromRequest(r)
+
 	return &PageData{
 		SiteName:            config.AppConfig.Site.Name,
 		SiteTagline:         config.AppConfig.Site.Tagline,
@@ -43,7 +65,9 @@ func NewPageData(r *http.Request) *PageData {
 		Theme:               theme.GetThemeFromRequest(r),
 		AllowThemeSwitching: config.AppConfig.Theme.AllowSwitching,
 		EditorEnabled:       config.AppConfig.Features.Editor.Enabled,
+		DraftsEnabled:       config.AppConfig.Features.Editor.Enabled && config.AppConfig.Features.Editor.EnableDrafts,
 		LivePreviewEnabled:  config.AppConfig.Features.Editor.LivePreview,
+		IsAuthenticated:     GetAuthStatus(r.Context()),
 		SyntaxTheme:         syntaxtheme,
 		SyntaxThemes:        theme.GetSyntaxThemes(),
 		SyntaxCSS:           theme.GenerateSyntaxCSS(syntaxtheme),

@@ -56,8 +56,8 @@ func TestApplyDefaults(t *testing.T) {
 		}
 
 		// Test Content defaults
-		if config.Content.PostsPerPage != 50 {
-			t.Errorf("Expected posts per page 50, got %d", config.Content.PostsPerPage)
+		if config.Posts.PostsPerPage != 50 {
+			t.Errorf("Expected posts per page 50, got %d", config.Posts.PostsPerPage)
 		}
 
 		// Test Features defaults
@@ -237,7 +237,7 @@ server:
 theme:
   default: "light"
   allow_switching: false
-content:
+posts:
   posts_per_page: 25
 `
 		tempFile, err := os.CreateTemp("", "test-config-*.yaml")
@@ -279,8 +279,8 @@ content:
 		if AppConfig.Theme.AllowSwitching {
 			t.Error("Expected theme switching to be disabled")
 		}
-		if AppConfig.Content.PostsPerPage != 25 {
-			t.Errorf("Expected posts per page 25, got %d", AppConfig.Content.PostsPerPage)
+		if AppConfig.Posts.PostsPerPage != 25 {
+			t.Errorf("Expected posts per page 25, got %d", AppConfig.Posts.PostsPerPage)
 		}
 
 		// Verify defaults were still applied for unspecified fields
@@ -568,7 +568,7 @@ func TestComplexNestedStructDefaults(t *testing.T) {
 		{"Site", func() bool { return config.Site.Name != "" }},
 		{"Server", func() bool { return config.Server.Host != "" }},
 		{"Theme", func() bool { return config.Theme.Default != "" }},
-		{"Content", func() bool { return config.Content.PostsPerPage > 0 }},
+		{"Posts", func() bool { return config.Posts.PostsPerPage > 0 }},
 		{"Features", func() bool { return config.Features.Authentication.Type != "" }},
 		{"Meta", func() bool { return len(config.Meta.Keywords) > 0 }},
 		{"Logging", func() bool { return config.Logging.Level != "" }},

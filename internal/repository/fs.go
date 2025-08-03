@@ -19,6 +19,7 @@ type FSPostRepository struct { // implements PostRepository
 	postsCache       *cache.Cache[string, *model.Post]
 	postsCacheSorted []model.Post
 
+	reloadTimeout  time.Duration
 	reloadNotifier func(model.PostID)
 }
 
@@ -112,6 +113,27 @@ func (r *FSPostRepository) ReadPost(id any) (*model.Post, error) {
 	return nil, os.ErrNotExist
 }
 
+func (r *FSPostRepository) GetAdjacentPosts(id any) (prev *model.Post, next *model.Post) {
+	idStr := id.(string)
+
+	// Find the current post in the sorted list
+	for i, post := range r.postsCacheSorted {
+		if string(post.ID) == idStr {
+			// Get previous post (if exists)
+			if i > 0 {
+				prev = &r.postsCacheSorted[i-1]
+			}
+			// Get next post (if exists)
+			if i < len(r.postsCacheSorted)-1 {
+				next = &r.postsCacheSorted[i+1]
+			}
+			break
+		}
+	}
+
+	return prev, next
+}
+
 func (r *FSPostRepository) ReloadPosts() {
 	for {
 		posts, postMap, err := r.GetPosts()
@@ -133,8 +155,12 @@ func (r *FSPostRepository) ReloadPosts() {
 			r.postsCacheSorted = posts
 			r.postsCache.SetTo(postMap)
 		}
-		time.Sleep(1 * time.Second)
+		time.Sleep(r.reloadTimeout)
 	}
+}
+
+func (r *FSPostRepository) SetReloadTimeout(timeout time.Duration) {
+	r.reloadTimeout = timeout
 }
 
 func (r *FSPostRepository) NewPost() *model.Post {

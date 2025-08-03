@@ -23,40 +23,49 @@ type Config struct {
 	Site     SiteConfig     `yaml:"site"`
 	Server   ServerConfig   `yaml:"server"`
 	Theme    ThemeConfig    `yaml:"theme"`
-	Content  ContentConfig  `yaml:"content"`
+	Posts    PostsConfig    `yaml:"posts"`
 	Features FeaturesConfig `yaml:"features"`
 	Meta     MetaConfig     `yaml:"meta"`
 	Social   SocialConfig   `yaml:"social"`
 	Logging  LoggingConfig  `yaml:"logging"`
 }
 
+// LoggingConfig holds configuration for logging
 type LoggingConfig struct {
 	Level string `yaml:"level" default:"info"`
 }
 
+// SiteConfig holds site-specific configuration
 type SiteConfig struct {
 	Name        string `yaml:"name" default:"The Archive"`
 	Description string `yaml:"description" default:"A personal blog and knowledge archive"`
 	Tagline     string `yaml:"tagline" default:"Welcome to The Archive"`
 }
 
+// ServerConfig holds server-related configuration
 type ServerConfig struct {
 	Host string `yaml:"host" default:"0.0.0.0"`
 	Port string `yaml:"port" default:"12600"`
 }
 
+// ThemeConfig holds theme-related configuration
 type ThemeConfig struct {
 	Default            string       `yaml:"default" default:"dark"`
 	AllowSwitching     bool         `yaml:"allow_switching" default:"true"`
 	SyntaxHighlighting SyntaxConfig `yaml:"syntax_highlighting"`
 }
 
+// SyntaxConfig holds syntax highlighting theme configuration
 type SyntaxConfig struct {
 	DefaultDark  string `yaml:"default_dark" default:"gruvbox"`
 	DefaultLight string `yaml:"default_light" default:"catppuccin-latte"`
 }
 
-type ContentConfig struct {
+// PostsConfig holds configuration related to posts display
+type PostsConfig struct {
+	// Specifies how long to wait before reloading posts (in seconds)
+	ReloadTimeout int `yaml:"reload_timeout" default:"10"`
+	// Specifies the number of posts to display per page
 	PostsPerPage int `yaml:"posts_per_page" default:"50"`
 }
 
@@ -73,8 +82,9 @@ type AuthConfig struct {
 }
 
 type EditorConfig struct {
-	Enabled     bool `yaml:"enabled" default:"true"`
-	LivePreview bool `yaml:"live_preview" default:"true"`
+	Enabled      bool `yaml:"enabled" default:"true"`
+	LivePreview  bool `yaml:"live_preview" default:"true"`
+	EnableDrafts bool `yaml:"enable_drafts" default:"false"`
 }
 
 type FeatureFlag struct {

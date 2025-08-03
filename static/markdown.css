@@ -76,6 +76,22 @@ body main#content h1 {
     margin-bottom: 1.5rem;
     font-style: italic;
   }
+
+  /* Image responsiveness */
+  body main#content img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin: 1em auto;
+  }
+
+  /* Ensure images in preview also respect max width */
+  #post-content img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin: 1em auto;
+  }
   
   /* Dark theme styles */
   body.dark main#content h1 {

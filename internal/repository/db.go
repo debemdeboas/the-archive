@@ -18,7 +18,9 @@ type DBPostRepository struct { // implements PostRepository
 	postsCache       *cache.Cache[string, *model.Post]
 	postsCacheSorted []model.Post
 
-	reloadNotifier   func(model.PostID)
+	reloadTimeout  time.Duration
+	reloadNotifier func(model.PostID)
+
 	lastModifiedTime *time.Time // Track the latest modification time
 
 	db         db.DB
@@ -29,8 +31,9 @@ func NewDBPostRepository(db db.DB) *DBPostRepository {
 	return &DBPostRepository{
 		postsCache: cache.NewCache[string, *model.Post](),
 
-		db: db,
+		reloadTimeout: 10 * time.Second,
 
+		db:         db,
 		compressor: compression.ZstdCompressor{},
 	}
 }
@@ -138,9 +141,34 @@ func (r *DBPostRepository) ReadPost(id any) (*model.Post, error) {
 	return post, nil
 }
 
+func (r *DBPostRepository) GetAdjacentPosts(id any) (prev *model.Post, next *model.Post) {
+	idStr := id.(string)
+
+	// Find the current post in the sorted list
+	for i, post := range r.postsCacheSorted {
+		if string(post.ID) == idStr {
+			// Get previous post (if exists)
+			if i > 0 {
+				prev = &r.postsCacheSorted[i-1]
+			}
+			// Get next post (if exists)
+			if i < len(r.postsCacheSorted)-1 {
+				next = &r.postsCacheSorted[i+1]
+			}
+			break
+		}
+	}
+
+	return prev, next
+}
+
+func (r *DBPostRepository) SetReloadTimeout(timeout time.Duration) {
+	r.reloadTimeout = timeout
+}
+
 func (r *DBPostRepository) ReloadPosts() {
 	sleepFunc := func() {
-		time.Sleep(10 * time.Second)
+		time.Sleep(r.reloadTimeout)
 	}
 
 	for {

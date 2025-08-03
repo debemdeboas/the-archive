@@ -1,13 +1,17 @@
 package main
 
 import (
+	"crypto/rand"
 	"embed"
+	"encoding/hex"
 	"fmt"
 	"html/template"
+	"io"
 	"io/fs"
 	"net/http"
 	"net/url"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -29,6 +33,16 @@ import (
 	"github.com/debemdeboas/the-archive/internal/theme"
 	"github.com/debemdeboas/the-archive/internal/util"
 )
+
+// authStatusMiddleware adds authentication status to request context
+func (app *Application) authStatusMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, isAuthenticated := auth.UserIDFromContext(r.Context())
+		ctx := model.WithAuthStatus(r.Context(), isAuthenticated)
+		r = r.WithContext(ctx)
+		next.ServeHTTP(w, r)
+	})
+}
 
 //go:embed static/* templates/*
 var content embed.FS
@@ -59,6 +73,7 @@ func main() {
 	db.SetLogger(log)
 	repository.SetLogger(log)
 	auth.SetLogger(log)
+	render.SetLogger(log)
 
 	database := db.NewSQLite()
 	if err := database.InitDB(); err != nil {
@@ -66,6 +81,8 @@ func main() {
 	}
 
 	postRepo := repository.NewDBPostRepository(database)
+	postRepo.SetReloadTimeout(time.Duration(config.AppConfig.Posts.ReloadTimeout) * time.Second)
+
 	editorRepo := editor.NewMemoryRepository()
 	clients := sse.NewSSEClients()
 	editorHandler := editor.NewHandler(editorRepo, clients, &content)
@@ -107,6 +124,9 @@ func main() {
 
 	mux.HandleFunc(routes.RootPath, app.serveIndex)
 	mux.Handle(config.StaticURLPath, http.StripPrefix(config.StaticURLPath, http.FileServer(http.FS(static))))
+	
+	// Serve uploaded images from filesystem
+	mux.Handle("/static/uploads/", http.StripPrefix("/static/uploads/", http.FileServer(http.Dir("static/uploads/"))))
 
 	mux.HandleFunc(config.PostsURLPath, app.servePost)
 	mux.HandleFunc(routes.PartialsPost, app.servePartialsPost)
@@ -121,20 +141,29 @@ func main() {
 	mux.HandleFunc(routes.SSEPath, app.eventsHandler)
 
 	if config.AppConfig.Features.Editor.Enabled {
-		mux.HandleFunc(routes.NewPost, app.serveNewPost)
-		mux.Handle(routes.NewPostEdit, http.HandlerFunc(app.editorHandler.ServeNewDraftEditor))
+		// Editor routes (for editing existing posts)
 		mux.Handle(routes.EditPost, http.HandlerFunc(app.ServeEditPost))
 		mux.HandleFunc(routes.APIPosts, app.handleAPIPosts)
+		mux.HandleFunc(routes.APIImages, app.handleAPIImages)
 
 		if config.AppConfig.Features.Editor.LivePreview {
 			mux.Handle(
 				routes.PartialsPostPreview,
 				http.HandlerFunc(app.midWithPostSaving(app.serveNewPostPreview)),
 			)
-			mux.Handle(
-				routes.PartialsDraftPreview,
-				http.HandlerFunc(app.midWithDraftSaving(app.serveNewPostPreview)),
-			)
+		}
+
+		// Draft routes (for creating new posts)
+		if config.AppConfig.Features.Editor.EnableDrafts {
+			mux.HandleFunc(routes.NewPost, app.serveNewPost)
+			mux.Handle(routes.NewPostEdit, http.HandlerFunc(app.editorHandler.ServeNewDraftEditor))
+
+			if config.AppConfig.Features.Editor.LivePreview {
+				mux.Handle(
+					routes.PartialsDraftPreview,
+					http.HandlerFunc(app.midWithDraftSaving(app.serveNewPostPreview)),
+				)
+			}
 		}
 	}
 
@@ -155,10 +184,14 @@ func main() {
 
 	var finalHandler http.Handler
 	if config.AppConfig.Features.Authentication.Enabled {
-		finalHandler = app.authProvider.WithHeaderAuthorization()(securedMux)
+		finalHandler = app.authProvider.WithHeaderAuthorization()(app.authStatusMiddleware(securedMux))
 	} else {
-		finalHandler = securedMux
+		finalHandler = app.authStatusMiddleware(securedMux)
 	}
+
+	log.Info().Msg("Server started on " + config.AppConfig.Server.Host + ":" + config.AppConfig.Server.Port)
+	log.Info().Msg("Using static files from " + config.StaticLocalDir)
+	log.Info().Msg("Using templates from " + config.TemplatesLocalDir)
 
 	log.Fatal().Err(http.ListenAndServe(config.AppConfig.Server.Host+":"+config.AppConfig.Server.Port, loggingMiddleware(log)(cacheIt(finalHandler)))).Msg("Server closed")
 }
@@ -282,7 +315,9 @@ func (app *Application) serveNewPostPreview(w http.ResponseWriter, r *http.Reque
 	htmlContent, _ := render.RenderMarkdown([]byte(content), theme.GetSyntaxThemeFromRequest(r))
 	w.Header().Set(config.HCType, config.CTypeHTML)
 	w.WriteHeader(http.StatusOK)
-	w.Write(htmlContent)
+	// Wrap the content in a div with the id "post-content" to match the target
+	// for the hx-swap="morph" attribute.
+	w.Write([]byte(fmt.Sprintf(`<div id="post-content">%s</div>`, htmlContent)))
 }
 
 func cacheIt(h http.Handler) http.HandlerFunc {
@@ -344,10 +379,24 @@ func (app *Application) servePost(w http.ResponseWriter, r *http.Request) {
 		http.NotFound(w, r)
 		return
 	}
-	htmlContent, extra := render.RenderMarkdownCached(post.Markdown, post.MDContentHash, theme.GetSyntaxThemeFromRequest(r))
+	syntaxTheme := theme.GetSyntaxThemeFromRequest(r)
+	htmlContent, extra := render.RenderMarkdownCached(post.Markdown, post.MDContentHash, syntaxTheme)
 	post.Path = postID
 	post.Content = template.HTML(htmlContent)
 	post.Info = extra.(*mast.TitleData)
+
+	// Warm cache for adjacent posts
+	go func() {
+		prev, next := app.postRepo.GetAdjacentPosts(postID)
+		if prev != nil {
+			app.log.Debug().Str("prev_post_id", string(prev.ID)).Msg("Warming cache for previous post")
+			go render.WarmCache(prev.Markdown, prev.MDContentHash, syntaxTheme)
+		}
+		if next != nil {
+			app.log.Debug().Str("next_post_id", string(next.ID)).Msg("Warming cache for next post")
+			go render.WarmCache(next.Markdown, next.MDContentHash, syntaxTheme)
+		}
+	}()
 	data := struct {
 		*model.PageData
 		Post *model.Post
@@ -513,4 +562,104 @@ func (app *Application) handleAPIPosts(w http.ResponseWriter, r *http.Request) {
 	default:
 		http.Error(w, config.HTTPErrMethodNotAllowed, http.StatusMethodNotAllowed)
 	}
+}
+
+func (app *Application) handleAPIImages(w http.ResponseWriter, r *http.Request) {
+	l := zerolog.Ctx(r.Context())
+	
+	// Require authentication for image uploads
+	usrID, err := app.authProvider.EnforceUserAndGetID(w, r)
+	if err != nil {
+		l.Error().Err(err).Str("method", r.Method).Str("path", r.URL.Path).Msg("Unauthorized image upload attempt")
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	if r.Method != http.MethodPost {
+		http.Error(w, config.HTTPErrMethodNotAllowed, http.StatusMethodNotAllowed)
+		return
+	}
+
+	// Parse multipart form with 10MB limit
+	if err := r.ParseMultipartForm(10 << 20); err != nil {
+		l.Error().Err(err).Msg("Failed to parse multipart form")
+		http.Error(w, "Failed to parse form", http.StatusBadRequest)
+		return
+	}
+
+	file, header, err := r.FormFile("image")
+	if err != nil {
+		l.Error().Err(err).Msg("Failed to get image from form")
+		http.Error(w, "No image file found", http.StatusBadRequest)
+		return
+	}
+	defer file.Close()
+
+	// Validate file type
+	contentType := header.Header.Get("Content-Type")
+	if !strings.HasPrefix(contentType, "image/") {
+		l.Warn().Str("content_type", contentType).Msg("Invalid file type for image upload")
+		http.Error(w, "File must be an image", http.StatusBadRequest)
+		return
+	}
+
+	// Generate unique filename
+	randomBytes := make([]byte, 16)
+	if _, err := rand.Read(randomBytes); err != nil {
+		l.Error().Err(err).Msg("Failed to generate random filename")
+		http.Error(w, "Failed to generate filename", http.StatusInternalServerError)
+		return
+	}
+	
+	filename := hex.EncodeToString(randomBytes)
+	
+	// Determine file extension from content type
+	var ext string
+	switch contentType {
+	case "image/jpeg":
+		ext = ".jpg"
+	case "image/png":
+		ext = ".png"
+	case "image/gif":
+		ext = ".gif"
+	case "image/webp":
+		ext = ".webp"
+	default:
+		ext = ".jpg" // default fallback
+	}
+	
+	filename += ext
+
+	// Create uploads directory if it doesn't exist
+	uploadsDir := filepath.Join("static", "uploads")
+	if err := os.MkdirAll(uploadsDir, 0755); err != nil {
+		l.Error().Err(err).Str("dir", uploadsDir).Msg("Failed to create uploads directory")
+		http.Error(w, "Failed to create uploads directory", http.StatusInternalServerError)
+		return
+	}
+
+	// Create the file
+	filePath := filepath.Join(uploadsDir, filename)
+	dst, err := os.Create(filePath)
+	if err != nil {
+		l.Error().Err(err).Str("file_path", filePath).Msg("Failed to create file")
+		http.Error(w, "Failed to create file", http.StatusInternalServerError)
+		return
+	}
+	defer dst.Close()
+
+	// Copy the uploaded file to the destination
+	if _, err := io.Copy(dst, file); err != nil {
+		l.Error().Err(err).Str("file_path", filePath).Msg("Failed to save file")
+		http.Error(w, "Failed to save file", http.StatusInternalServerError)
+		return
+	}
+
+	// Return the URL path to the uploaded image
+	imageURL := "/static/uploads/" + filename
+	l.Info().Str("user_id", string(usrID)).Str("image_url", imageURL).Str("content_type", contentType).Msg("Image uploaded successfully")
+
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprintf(w, `{"url": "%s"}`, imageURL)
 }
