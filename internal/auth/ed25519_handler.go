@@ -18,8 +18,8 @@ func Ed25519ChallengeHandler(provider *Ed25519AuthProvider) http.HandlerFunc {
 		l := zerolog.Ctx(r.Context())
 		switch r.Method {
 		case http.MethodGet:
-			// Return the current challenge for signing
-			challenge := provider.GetChallenge()
+			// Return a fresh challenge for signing (prevents reuse)
+			challenge := provider.GetFreshChallenge()
 			response := map[string]string{
 				"challenge": base64.StdEncoding.EncodeToString(challenge),
 			}

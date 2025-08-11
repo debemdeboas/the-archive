@@ -124,7 +124,7 @@ func main() {
 
 	mux.HandleFunc(routes.RootPath, app.serveIndex)
 	mux.Handle(config.StaticURLPath, http.StripPrefix(config.StaticURLPath, http.FileServer(http.FS(static))))
-	
+
 	// Serve uploaded images from filesystem
 	mux.Handle("/static/uploads/", http.StripPrefix("/static/uploads/", http.FileServer(http.Dir("static/uploads/"))))
 
@@ -141,8 +141,12 @@ func main() {
 	mux.HandleFunc(routes.SSEPath, app.eventsHandler)
 
 	if config.AppConfig.Features.Editor.Enabled {
-		// Editor routes (for editing existing posts)
-		mux.Handle(routes.EditPost, http.HandlerFunc(app.ServeEditPost))
+		// Editor routes (for editing existing posts) - protected by authentication
+		if config.AppConfig.Features.Authentication.Enabled {
+			mux.Handle(routes.EditPost, app.authProvider.WithHeaderAuthorization()(http.HandlerFunc(app.ServeEditPost)))
+		} else {
+			mux.Handle(routes.EditPost, http.HandlerFunc(app.ServeEditPost))
+		}
 		mux.HandleFunc(routes.APIPosts, app.handleAPIPosts)
 		mux.HandleFunc(routes.APIImages, app.handleAPIImages)
 
@@ -566,7 +570,7 @@ func (app *Application) handleAPIPosts(w http.ResponseWriter, r *http.Request) {
 
 func (app *Application) handleAPIImages(w http.ResponseWriter, r *http.Request) {
 	l := zerolog.Ctx(r.Context())
-	
+
 	// Require authentication for image uploads
 	usrID, err := app.authProvider.EnforceUserAndGetID(w, r)
 	if err != nil {
@@ -610,9 +614,9 @@ func (app *Application) handleAPIImages(w http.ResponseWriter, r *http.Request) 
 		http.Error(w, "Failed to generate filename", http.StatusInternalServerError)
 		return
 	}
-	
+
 	filename := hex.EncodeToString(randomBytes)
-	
+
 	// Determine file extension from content type
 	var ext string
 	switch contentType {
@@ -627,7 +631,7 @@ func (app *Application) handleAPIImages(w http.ResponseWriter, r *http.Request) 
 	default:
 		ext = ".jpg" // default fallback
 	}
-	
+
 	filename += ext
 
 	// Create uploads directory if it doesn't exist

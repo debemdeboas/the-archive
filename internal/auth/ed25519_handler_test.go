@@ -29,11 +29,11 @@ func TestEd25519ChallengeHandler(t *testing.T) {
 		expectNewChallenge bool
 	}{
 		{
-			name:           "GET challenge returns current challenge",
+			name:           "GET challenge returns a new challenge",
 			method:         http.MethodGet,
 			expectedStatus: http.StatusOK,
 			expectJSON:     true,
-			expectNewChallenge: false,
+			expectNewChallenge: true,
 		},
 		{
 			name:           "POST challenge generates new challenge",
