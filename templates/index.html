@@ -3,19 +3,20 @@
 {{end}}
 
 {{define "content"}}
-<h1>Welcome to {{ .SiteName }}</h1>
+<h1>{{ .SiteTagline }}</h1>
 <h2>Posts</h2>
 <ul class="post-list">
   {{range .Posts}}
   <li
-    hx-get="{{$.PostsPath}}{{.Id}}"
+    id="{{.ID}}"
+    hx-get="{{$.PostsPath}}{{.ID}}"
     hx-push-url="true"
     hx-target="body"
     hx-swap="outerHTML"
     class="post-item"
   >
     <span class="post-title">{{.Title}}</span>
-    <span class="post-id">{{printf "%.6s" .Id}}</span>
+    <span class="post-id">{{printf "%.6s" .ID}}</span>
   </li>
   {{end}}
 </ul>

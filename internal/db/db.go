@@ -1,3 +1,4 @@
+// Package db provides database interface abstractions and connection management.
 package db
 
 import (
@@ -6,8 +7,8 @@ import (
 	"github.com/rs/zerolog"
 )
 
-type Db interface {
-	InitDb() error
+type DB interface {
+	InitDB() error
 
 	Get() *sql.DB
 	Close() error

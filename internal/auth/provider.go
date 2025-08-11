@@ -9,9 +9,9 @@ import (
 type AuthProvider interface {
 	WithHeaderAuthorization() func(http.Handler) http.Handler
 
-	GetUserIdFromSession(r *http.Request) (model.UserId, error)
+	GetUserIDFromSession(r *http.Request) (model.UserID, error)
 
-	EnforceUserAndGetId(w http.ResponseWriter, r *http.Request) (model.UserId, error)
+	EnforceUserAndGetID(w http.ResponseWriter, r *http.Request) (model.UserID, error)
 
 	HandleWebhookUser(w http.ResponseWriter, r *http.Request)
 }

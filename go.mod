@@ -1,6 +1,8 @@
 module github.com/debemdeboas/the-archive
 
-go 1.22.0
+go 1.23.0
+
+toolchain go1.24.5
 
 require (
 	github.com/alecthomas/chroma/v2 v2.15.0
@@ -9,7 +11,6 @@ require (
 	github.com/aws/aws-sdk-go-v2/credentials v1.17.59
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.76.1
 	github.com/charmbracelet/lipgloss v1.0.0
-	github.com/clerk/clerk-sdk-go/v2 v2.2.0
 	github.com/gomarkdown/markdown v0.0.0-20250202022148-4f606c78d442
 	github.com/google/uuid v1.6.0
 	github.com/joho/godotenv v1.5.1
@@ -17,6 +18,7 @@ require (
 	github.com/mattn/go-sqlite3 v1.14.24
 	github.com/mmarkdown/mmark/v2 v2.2.46
 	github.com/rs/zerolog v1.33.0
+	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
@@ -38,7 +40,7 @@ require (
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
 	github.com/charmbracelet/x/ansi v0.4.2 // indirect
 	github.com/dlclark/regexp2 v1.11.4 // indirect
-	github.com/go-jose/go-jose/v3 v3.0.3 // indirect
+	github.com/kr/pretty v0.3.1 // indirect
 	github.com/lucasb-eyer/go-colorful v1.2.0 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect
@@ -46,7 +48,7 @@ require (
 	github.com/muesli/termenv v0.15.2 // indirect
 	github.com/pkg/errors v0.9.1 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
-	github.com/stretchr/testify v1.9.0 // indirect
-	golang.org/x/crypto v0.19.0 // indirect
-	golang.org/x/sys v0.19.0 // indirect
+	github.com/rogpeppe/go-internal v1.11.0 // indirect
+	golang.org/x/sys v0.34.0 // indirect
+	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 )

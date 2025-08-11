@@ -3,19 +3,24 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    {{if .SiteDescription}}<meta name="description" content="{{.SiteDescription}}" />{{end}}
+    {{if .SiteKeywords}}<meta name="keywords" content="{{range $i, $keyword := .SiteKeywords}}{{if $i}}, {{end}}{{$keyword}}{{end}}" />{{end}}
+    {{if .SiteAuthor}}<meta name="author" content="{{.SiteAuthor}}" />{{end}}
     <link rel="icon" type="image/svg+xml" href="/static/icons/favicon.svg" />
     <link
       rel="preload"
       as="font"
       type="font/woff2"
-      href="/fonts/TX-02-SemiBold.woff2"
+      href="/static/fonts/TX-02-SemiBold.woff2"
       crossorigin
     />
     <title>{{template "title" .}}</title>
 
     <script src="https://unpkg.com/htmx.org@2.0.4"></script>
     <script src="https://unpkg.com/htmx-ext-sse@2.2.2/sse.js"></script>
-    <meta name="htmx-config" content='{"withCredentials":true}' />
+    <script src="https://unpkg.com/idiomorph@0.7.3" integrity="sha384-JcorokHTL/m+D6ZHe2+yFVQopVwZ+91GxAPDyEZ6/A/OEPGEx1+MeNSe2OGvoRS9" crossorigin="anonymous"></script>
+    <script src="https://unpkg.com/idiomorph@0.7.3/dist/idiomorph-ext.min.js" integrity="sha384-szktAZju9fwY15dZ6D2FKFN4eZoltuXiHStNDJWK9+FARrxJtquql828JzikODob" crossorigin="anonymous"></script>
+    <meta name="htmx-config" content='{"withCredentials":true, "scrollBehavior":"auto"}' />
 
     <script src="/static/index.js"></script>
 
@@ -59,9 +64,8 @@
     />
     <link rel="stylesheet" href="/static/style.css" />
     <link rel="stylesheet" href="/static/markdown.css" />
-    <link rel="stylesheet" href="/static/clerk.css" />
   </head>
-  <body class="{{.Theme}}">
+  <body class="{{.Theme}}" hx-ext="morph">
     <nav class="navbar">
       <div class="navbar-wrapper">
         <button class="hamburger" onclick="toggleNavbar()">
@@ -72,7 +76,7 @@
             <a
               hx-get="/"
               hx-target="body"
-              hx-swap="outerHTML"
+              hx-swap="outerHTML show:unset"
               hx-push-url="true"
               id="nav-go-home"
             >
@@ -83,10 +87,10 @@
       </div>
       <div class="navbar-menu">
         <div class="navbar-left">
-          {{if .IsPost}}
+          {{if and .IsPost .IsAuthenticated}}
           <div id="edit-post" class="title-wrapper" data-tooltip="Edit">
             <button
-              hx-get="/edit/post/{{.Post.Id}}"
+              hx-get="/edit/post/{{.Post.ID}}"
               hx-boost="true"
               hx-target="body"
               hx-swap="outerHTML"
@@ -103,7 +107,7 @@
             <a
               hx-get="/"
               hx-target="body"
-              hx-swap="outerHTML"
+              hx-swap="outerHTML show:unset"
               hx-push-url="true"
               id="nav-go-home"
               >{{ .SiteName }}</a
@@ -111,6 +115,7 @@
           </h1>
         </div>
         <div class="navbar-right">
+          {{if not .IsAuthenticated}}
           <div id="sign-in" class="title-wrapper" data-tooltip="Sign in">
             <button
               hx-get="/auth/login"
@@ -122,6 +127,8 @@
               <i class="fa-solid fa-user-shield"></i>
             </button>
           </div>
+          {{end}}
+          {{if .DraftsEnabled}}
           {{if .IsEditor}}
           <div
             class="title-wrapper"
@@ -138,6 +145,8 @@
             </button>
           </div>
           {{end}}
+          {{end}}
+          {{if .AllowThemeSwitching}}
           <div class="title-wrapper" data-tooltip="Toggle dark/light theme">
             <button
               hx-post="/theme/toggle"
@@ -145,14 +154,16 @@
               hx-target=".theme-icon"
               class="theme-toggle"
             >
-              <span
-                class="theme-icon"
-                hx-get="/theme/opposite-icon"
-                hx-trigger="load"
-                hx-vals='js:{"theme": getCurrentTheme()}'
-              ></span>
+              <span class="theme-icon">
+                {{if eq .Theme "light"}}
+                <i class="fas fa-moon"></i>
+                {{else}}
+                <i class="fas fa-sun"></i>
+                {{end}}
+              </span>
             </button>
           </div>
+          {{end}}
           <div
             class="title-wrapper"
             data-tooltip="Select syntax highlighting theme"
@@ -215,14 +226,6 @@
       src="https://static.cloudflareinsights.com/beacon.min.js"
       data-cf-beacon='{"token": "3c7facff57df448dae50146bda5b4ef8"}'
       defer
-    ></script>
-    <!-- Clerk -->
-    <script
-      async
-      crossorigin="anonymous"
-      data-clerk-publishable-key="pk_test_bG92ZWQtc25ha2UtNTIuY2xlcmsuYWNjb3VudHMuZGV2JA"
-      src="https://loved-snake-52.clerk.accounts.dev/npm/@clerk/clerk-js@latest/dist/clerk.browser.js"
-      type="text/javascript"
     ></script>
   </body>
 </html>

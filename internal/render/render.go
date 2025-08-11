@@ -1,3 +1,4 @@
+// Package render provides markdown rendering and syntax highlighting functionality.
 package render
 
 import (
@@ -5,10 +6,12 @@ import (
 	"html"
 	"io"
 	"strings"
+	"sync"
 
 	"github.com/alecthomas/chroma/v2"
 	"github.com/alecthomas/chroma/v2/lexers"
 	"github.com/alecthomas/chroma/v2/styles"
+	"github.com/debemdeboas/the-archive/internal/cache"
 	"github.com/debemdeboas/the-archive/internal/config"
 	"github.com/debemdeboas/the-archive/internal/theme"
 	"github.com/gomarkdown/markdown"
@@ -54,6 +57,32 @@ func RenderMarkdown(md []byte, highlightTheme string) ([]byte, any) {
 	default:
 		return RenderMarkdownClassic(md, highlightTheme), nil
 	}
+}
+
+// Mutex to protect the check-render-set operation in RenderMarkdownCached
+var renderCacheMutex sync.Mutex
+
+func RenderMarkdownCached(md []byte, contentHash, highlightTheme string) ([]byte, any) {
+	if contentHash == "" {
+		renderLogger.Warn().Msg("Content hash is empty, skipping cache check")
+		return RenderMarkdown(md, highlightTheme)
+	}
+
+	// First check cache without locking (fast path for cache hits)
+	if cached, found := cache.GetRenderedMarkdown(contentHash, highlightTheme); found {
+		renderLogger.Debug().Str("contentHash", contentHash).Str("highlightTheme", highlightTheme).Msg("Cache hit for rendered markdown")
+		return cached.HTML, cached.Extra
+	}
+
+	// Cache miss
+	renderLogger.Debug().Str("contentHash", contentHash).Str("highlightTheme", highlightTheme).Msg("Cache miss for rendered markdown")
+	renderCacheMutex.Lock()
+	defer renderCacheMutex.Unlock()
+
+	html, extra := RenderMarkdown(md, highlightTheme)
+	cache.SetRenderedMarkdown(contentHash, highlightTheme, html, extra)
+
+	return html, extra
 }
 
 func RenderMarkdownClassic(md []byte, highlightTheme string) []byte {
@@ -153,4 +182,13 @@ func RenderMarkdownMmark(md []byte, highlightTheme string) ([]byte, *mast.TitleD
 	x := markdown.Render(doc, renderer)
 
 	return x, info
+}
+
+// WarmCache pre-renders markdown content asynchronously to warm the cache
+func WarmCache(md []byte, contentHash, highlightTheme string) {
+	renderLogger.Debug().Str("contentHash", contentHash).Str("highlightTheme", highlightTheme).Msg("Starting cache warming")
+	go func() {
+		RenderMarkdownCached(md, contentHash, highlightTheme)
+		renderLogger.Debug().Str("contentHash", contentHash).Str("highlightTheme", highlightTheme).Msg("Cache warming completed")
+	}()
 }

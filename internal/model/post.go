@@ -1,3 +1,4 @@
+// Package model defines core data structures and types for the blog application.
 package model
 
 import (
@@ -8,10 +9,10 @@ import (
 	"github.com/mmarkdown/mmark/v2/mast"
 )
 
-type PostId string
+type PostID string
 
 type Post struct {
-	Id PostId
+	ID PostID
 
 	Title   string
 	Content template.HTML
@@ -29,7 +30,7 @@ type Post struct {
 	Info *mast.TitleData
 
 	// Optional data: owner of the post (for example, the user who created it).
-	Owner UserId
+	Owner UserID
 }
 
 func (p *Post) GetTitle() string {

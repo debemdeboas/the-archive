@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/debemdeboas/the-archive/internal/config"
+	"github.com/debemdeboas/the-archive/internal/routes"
 )
 
 // RegisterEd25519AuthRoutes registers all the routes needed for RSA authentication
@@ -20,7 +21,7 @@ func RegisterEd25519AuthRoutes(mux *http.ServeMux, provider *Ed25519AuthProvider
 		return
 	}
 
-	mux.HandleFunc("/auth/challenge", Ed25519ChallengeHandler(provider))
-	mux.HandleFunc("/auth/verify", Ed25519VerifyHandler(provider))
-	mux.HandleFunc("/auth/login", Ed25519AuthPageHandler(provider, tmpl))
+	mux.HandleFunc(routes.AuthChallenge, Ed25519ChallengeHandler(provider))
+	mux.HandleFunc(routes.AuthVerify, Ed25519VerifyHandler(provider))
+	mux.HandleFunc(routes.AuthLogin, Ed25519AuthPageHandler(provider, tmpl))
 }

@@ -16,26 +16,12 @@ func NewSQLite() *SQLite {
 	}
 }
 
-func (s *SQLite) InitDb() error {
+func (s *SQLite) InitDB() error {
 	var err error
-	s.conn, err = sql.Open("sqlite3", "./database.db")
+	s.conn, err = sql.Open("sqlite3", "./database.db?_time_format=auto")
 	if err != nil {
 		return err
 	}
-
-	// We've removed the user_id foreign key from the posts/drafts table for now.
-	// FOREIGN KEY(user_id) REFERENCES users(id)
-
-	// Comments are also removed from the schema.
-	// CREATE TABLE IF NOT EXISTS comments (
-	//     id TEXT PRIMARY KEY,
-	//     post_id TEXT,
-	//     user_id TEXT,
-	//     comment TEXT,
-	//     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-	//     FOREIGN KEY(post_id) REFERENCES posts(id),
-	//     FOREIGN KEY(user_id) REFERENCES users(id)
-	// );
 
 	res, err := s.conn.Exec(`
 PRAGMA foreign_keys = ON;
@@ -65,7 +51,7 @@ CREATE TABLE IF NOT EXISTS posts (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );`)
 
-	dbLogger.Info().Any("db_result", res).Msg("Database initialized")
+	dbLogger.Debug().Any("db_result", res).Msg("Database initialized")
 	return err
 }
 
@@ -81,11 +67,11 @@ func (s *SQLite) Close() error {
 }
 
 func (s *SQLite) Query(query string, args ...interface{}) (*sql.Rows, error) {
-	dbLogger.Info().Str("query", query).Msg("Query")
+	dbLogger.Debug().Str("query", query).Msg("Query")
 	return s.conn.Query(query, args...)
 }
 
 func (s *SQLite) Exec(query string, args ...interface{}) (sql.Result, error) {
-	dbLogger.Info().Str("query", query).Msg("Exec")
+	dbLogger.Debug().Str("query", query).Msg("Exec")
 	return s.conn.Exec(query, args...)
 }

@@ -1,3 +1,4 @@
+// Package theme handles theme management, syntax highlighting, and CSS generation.
 package theme
 
 import (
@@ -17,13 +18,13 @@ func GetThemeFromRequest(r *http.Request) string {
 	if cookie, err := r.Cookie(config.CookieTheme); err == nil {
 		return cookie.Value
 	}
-	return config.DefaultTheme
+	return config.AppConfig.Theme.Default
 }
 
 func GetDefaultSyntaxTheme(theme string) string {
 	return map[string]string{
-		config.LightTheme: config.DefaultLightSyntaxTheme,
-		config.DarkTheme:  config.DefaultDarkSyntaxTheme,
+		config.LightTheme: config.AppConfig.Theme.SyntaxHighlighting.DefaultLight,
+		config.DarkTheme:  config.AppConfig.Theme.SyntaxHighlighting.DefaultDark,
 	}[theme]
 }
 

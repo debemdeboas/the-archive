@@ -1,3 +1,4 @@
+// Package auth provides authentication utilities and context management for user authentication.
 package auth
 
 import (
@@ -9,16 +10,16 @@ import (
 // ContextKey is a type for context keys to avoid collisions
 type ContextKey string
 
-// ContextKeyUserId is the key for user ID in request context
-const ContextKeyUserId ContextKey = "userId"
+// ContextKeyUserID is the key for user ID in request context
+const ContextKeyUserID ContextKey = "userID"
 
-// ContextWithUserId returns a new context with the user ID set
-func ContextWithUserId(ctx context.Context, userId model.UserId) context.Context {
-	return context.WithValue(ctx, ContextKeyUserId, userId)
+// ContextWithUserID returns a new context with the user ID set
+func ContextWithUserID(ctx context.Context, userID model.UserID) context.Context {
+	return context.WithValue(ctx, ContextKeyUserID, userID)
 }
 
-// UserIdFromContext extracts the user ID from context
-func UserIdFromContext(ctx context.Context) (model.UserId, bool) {
-	userId, ok := ctx.Value(ContextKeyUserId).(model.UserId)
-	return userId, ok
+// UserIDFromContext extracts the user ID from context
+func UserIDFromContext(ctx context.Context) (model.UserID, bool) {
+	userID, ok := ctx.Value(ContextKeyUserID).(model.UserID)
+	return userID, ok
 }

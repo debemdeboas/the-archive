@@ -8,9 +8,9 @@
 <div
   id="post-content"
   hx-ext="sse"
-  sse-connect="/sse?post={{.Post.Id}}"
+  sse-connect="/sse?post={{.Post.ID}}"
   sse-disconnect="beforeunload"
-  hx-get="/partials/post?post={{.Post.Id}}"
+  hx-get="/partials/post?post={{.Post.ID}}"
   hx-trigger="sse:message"
   hx-swap="innerHTML transition:true"
 >

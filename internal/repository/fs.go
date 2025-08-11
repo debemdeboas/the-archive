@@ -19,7 +19,8 @@ type FSPostRepository struct { // implements PostRepository
 	postsCache       *cache.Cache[string, *model.Post]
 	postsCacheSorted []model.Post
 
-	reloadNotifier func(model.PostId)
+	reloadTimeout  time.Duration
+	reloadNotifier func(model.PostID)
 }
 
 func NewFSPostRepository(postsPath string) *FSPostRepository {
@@ -29,13 +30,13 @@ func NewFSPostRepository(postsPath string) *FSPostRepository {
 	}
 }
 
-func (r *FSPostRepository) SetReloadNotifier(notifier func(model.PostId)) {
+func (r *FSPostRepository) SetReloadNotifier(notifier func(model.PostID)) {
 	r.reloadNotifier = notifier
 }
 
-func (r *FSPostRepository) notifyPostReload(postId model.PostId) {
+func (r *FSPostRepository) notifyPostReload(postID model.PostID) {
 	if r.reloadNotifier != nil {
-		r.reloadNotifier(postId)
+		r.reloadNotifier(postID)
 	}
 }
 
@@ -85,7 +86,7 @@ func (r *FSPostRepository) GetPosts() ([]model.Post, map[string]*model.Post, err
 			}
 
 			post := model.Post{
-				Id:            model.PostId(util.ContentHashString(name)),
+				ID:            model.PostID(util.ContentHashString(name)),
 				Title:         name,
 				Markdown:      mdContent,
 				MDContentHash: util.ContentHash(mdContent),
@@ -94,7 +95,7 @@ func (r *FSPostRepository) GetPosts() ([]model.Post, map[string]*model.Post, err
 			}
 
 			posts = append(posts, post)
-			postsMap[string(post.Id)] = &post
+			postsMap[string(post.ID)] = &post
 		}
 	}
 
@@ -112,6 +113,27 @@ func (r *FSPostRepository) ReadPost(id any) (*model.Post, error) {
 	return nil, os.ErrNotExist
 }
 
+func (r *FSPostRepository) GetAdjacentPosts(id any) (prev *model.Post, next *model.Post) {
+	idStr := id.(string)
+
+	// Find the current post in the sorted list
+	for i, post := range r.postsCacheSorted {
+		if string(post.ID) == idStr {
+			// Get previous post (if exists)
+			if i > 0 {
+				prev = &r.postsCacheSorted[i-1]
+			}
+			// Get next post (if exists)
+			if i < len(r.postsCacheSorted)-1 {
+				next = &r.postsCacheSorted[i+1]
+			}
+			break
+		}
+	}
+
+	return prev, next
+}
+
 func (r *FSPostRepository) ReloadPosts() {
 	for {
 		posts, postMap, err := r.GetPosts()
@@ -119,13 +141,13 @@ func (r *FSPostRepository) ReloadPosts() {
 			repoLogger.Error().Err(err).Msg("Error reloading posts")
 		} else {
 			for _, post := range r.postsCacheSorted {
-				if newPost, ok := postMap[string(post.Id)]; ok {
+				if newPost, ok := postMap[string(post.ID)]; ok {
 					if newPost.MDContentHash != post.MDContentHash {
 						repoLogger.Info().
-							Str("post_id", string(post.Id)).
+							Str("post_id", string(post.ID)).
 							Str("title", post.Title).
 							Msg("Reloading post")
-						go r.notifyPostReload(post.Id)
+						go r.notifyPostReload(post.ID)
 					}
 				}
 			}
@@ -133,8 +155,12 @@ func (r *FSPostRepository) ReloadPosts() {
 			r.postsCacheSorted = posts
 			r.postsCache.SetTo(postMap)
 		}
-		time.Sleep(1 * time.Second)
+		time.Sleep(r.reloadTimeout)
 	}
+}
+
+func (r *FSPostRepository) SetReloadTimeout(timeout time.Duration) {
+	r.reloadTimeout = timeout
 }
 
 func (r *FSPostRepository) NewPost() *model.Post {

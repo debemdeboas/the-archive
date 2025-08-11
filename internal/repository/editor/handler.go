@@ -34,9 +34,9 @@ func (h *Handler) ServeNewDraftEditor(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var draft *Draft = nil
-	if cookie, err := r.Cookie(config.CookieDraftId); err == nil {
-		draftId := DraftId(cookie.Value)
-		draft, _ = h.repo.GetDraft(draftId)
+	if cookie, err := r.Cookie(config.CookieDraftID); err == nil {
+		draftID := DraftID(cookie.Value)
+		draft, _ = h.repo.GetDraft(draftID)
 	}
 
 	if draft == nil {
@@ -47,26 +47,32 @@ func (h *Handler) ServeNewDraftEditor(w http.ResponseWriter, r *http.Request) {
 		}
 
 		http.SetCookie(w, &http.Cookie{
-			Name:  config.CookieDraftId,
-			Value: string(draft.Id),
+			Name:  config.CookieDraftID,
+			Value: string(draft.ID),
 			Path:  "/",
 		})
 	}
 
-	saveUrl := "/api/posts/" + string(draft.Id)
+	saveURL := "/api/posts/" + string(draft.ID)
 	saveMethod := "POST"
+
+	pageData := model.NewPageData(r)
+	hxPostURL := ""
+	if pageData.LivePreviewEnabled {
+		hxPostURL = "/partials/draft/preview"
+	}
 
 	data := struct {
 		*model.PageData
 		*model.Post
-		HxPostUrl    string
-		HxSaveUrl    *string
+		HxPostURL    string
+		HxSaveURL    *string
 		HxSaveMethod *string
 	}{
-		PageData:     model.NewPageData(r),
-		Post:         &model.Post{Id: model.PostId(draft.Id), Markdown: draft.Content},
-		HxPostUrl:    "/partials/draft/preview",
-		HxSaveUrl:    &saveUrl,
+		PageData:     pageData,
+		Post:         &model.Post{ID: model.PostID(draft.ID), Markdown: draft.Content},
+		HxPostURL:    hxPostURL,
+		HxSaveURL:    &saveURL,
 		HxSaveMethod: &saveMethod,
 	}
 
@@ -88,20 +94,26 @@ func (h *Handler) ServeEditPostEditor(w http.ResponseWriter, r *http.Request, po
 		return
 	}
 
-	saveUrl := "/api/posts/" + string(post.Id)
+	saveURL := "/api/posts/" + string(post.ID)
 	savePut := "PUT"
+
+	pageData := model.NewPageData(r)
+	hxPostURL := ""
+	if pageData.LivePreviewEnabled {
+		hxPostURL = "/partials/post/preview"
+	}
 
 	data := struct {
 		*model.PageData
 		*model.Post
-		HxPostUrl    string
-		HxSaveUrl    *string
+		HxPostURL    string
+		HxSaveURL    *string
 		HxSaveMethod *string
 	}{
-		PageData:     model.NewPageData(r),
+		PageData:     pageData,
 		Post:         post,
-		HxPostUrl:    "/partials/post/preview",
-		HxSaveUrl:    &saveUrl,
+		HxPostURL:    hxPostURL,
+		HxSaveURL:    &saveURL,
 		HxSaveMethod: &savePut,
 	}
 

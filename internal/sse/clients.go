@@ -1,3 +1,4 @@
+// Package sse provides Server-Sent Events client management for real-time communication.
 package sse
 
 import (
@@ -8,7 +9,7 @@ import (
 
 type Client struct {
 	Msg    chan string
-	PostId model.PostId
+	PostID model.PostID
 }
 
 type SSEClients struct {
@@ -35,11 +36,11 @@ func (s *SSEClients) Delete(client *Client) {
 	close(client.Msg)
 }
 
-func (s *SSEClients) Broadcast(postId model.PostId, msg string) {
+func (s *SSEClients) Broadcast(postID model.PostID, msg string) {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	for client := range s.clients {
-		if client.PostId == postId {
+		if client.PostID == postID {
 			select {
 			case client.Msg <- msg:
 			default:

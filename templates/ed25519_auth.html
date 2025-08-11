@@ -7,15 +7,26 @@
     <title>Authentication Required</title>
     <link rel="stylesheet" href="/static/style.css" />
     <link rel="stylesheet" href="/static/auth.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+      crossorigin="anonymous"
+      referrerpolicy="no-referrer"
+    />
   </head>
-  <body class="dark-theme">
+  <body class="dark">
     <div class="auth-container">
       <h1>Authentication Required</h1>
       <p>Sign the challenge with your private key to proceed.</p>
 
       <div class="auth-form">
         <div>
-          <h3>Current Challenge</h3>
+          <div class="challenge-header">
+            <h3>Current Challenge</h3>
+            <button id="copyChallenge" class="copy-btn-small" title="Copy challenge to clipboard">
+              <i class="fas fa-copy"></i>
+            </button>
+          </div>
           <div class="challenge-container" id="challenge">Loading...</div>
           <small>Sign this with your private key.</small>
         </div>
@@ -45,12 +56,14 @@
         const signatureInput = document.getElementById("signature");
         const authenticateBtn = document.getElementById("authenticate");
         const refreshChallengeBtn = document.getElementById("refreshChallenge");
+        const copyChallengeBtn = document.getElementById("copyChallenge");
         const statusContainer = document.getElementById("status");
 
         loadChallenge();
 
         authenticateBtn.addEventListener("click", authenticate);
         refreshChallengeBtn.addEventListener("click", refreshChallenge);
+        copyChallengeBtn.addEventListener("click", copyChallenge);
 
         function loadChallenge() {
           fetch("/auth/challenge", {
@@ -116,6 +129,28 @@
             .catch((error) => {
               showStatus("Authentication failed: " + error.message, "error");
             });
+        }
+
+        function copyChallenge() {
+          const challengeText = challengeContainer.textContent;
+          if (challengeText && challengeText !== "Loading...") {
+            navigator.clipboard.writeText(challengeText)
+              .then(() => {
+                copyChallengeBtn.innerHTML = "copied!";
+                copyChallengeBtn.disabled = true;
+                
+                // Revert back to icon after 2 seconds
+                setTimeout(() => {
+                  copyChallengeBtn.innerHTML = '<i class="fas fa-copy"></i>';
+                  copyChallengeBtn.disabled = false;
+                }, 2000);
+              })
+              .catch((error) => {
+                showStatus("Failed to copy challenge: " + error.message, "error");
+              });
+          } else {
+            showStatus("No challenge to copy", "error");
+          }
         }
 
         function showStatus(message, type) {

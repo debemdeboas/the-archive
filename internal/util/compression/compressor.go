@@ -1,3 +1,4 @@
+// Package compression provides compression interfaces for data compression/decompression.
 package compression
 
 type Compressor interface {

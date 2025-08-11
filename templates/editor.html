@@ -3,9 +3,9 @@ Editing "{{.Post.Title}}" - {{ $.SiteName }}
 {{end}}
 
 {{define "navbar-left"}}
-{{ if .HxSaveUrl }}
+{{ if .HxSaveURL }}
 <div class="title-wrapper" data-tooltip="Save">
-  <button hx-{{.HxSaveMethod}}="{{.HxSaveUrl}}" hx-trigger="click" hx-swap="none" hx-include="#editor-content">
+  <button hx-{{.HxSaveMethod}}="{{.HxSaveURL}}" hx-trigger="click" hx-swap="none" hx-include="#editor-content">
     <i class="fas fa-save"></i>
   </button>
 </div>
@@ -29,11 +29,125 @@ Editing "{{.Post.Title}}" - {{ $.SiteName }}
 <textarea
     id="editor-content"
     name="content"
-    hx-post="{{.HxPostUrl}}"
-    hx-trigger="keyup changed delay:1ms, load"
+    {{if .HxPostURL}}hx-post="{{.HxPostURL}}"
+    hx-trigger="keyup changed delay:150ms, load"
     hx-target="#post-content"
-    hx-vals='{"draft-id": "{{.Post.Id}}"}'
+    hx-swap="morph"
+    hx-vals='{"draft-id": "{{.Post.ID}}"}'{{end}}
 >{{.Post.Markdown | printf "%s"}}</textarea>
 
+{{if .LivePreviewEnabled}}
 <div id="post-content"></div>
+{{else}}
+<style>
+  main#content.editor {
+    grid-template-columns: 1fr !important;
+    justify-content: center;
+  }
+
+  main#content.editor textarea#editor-content {
+    border-right: none !important;
+    max-width: 800px;
+    margin: 0 auto;
+  }
+</style>
+{{end}}
+
+<script>
+function setupImagePasteHandler() {
+  const textarea = document.getElementById('editor-content');
+  if (!textarea) return;
+
+  // Remove any existing listeners to prevent duplicates
+  textarea.removeEventListener('paste', handleImagePaste);
+  textarea.addEventListener('paste', handleImagePaste);
+}
+
+async function handleImagePaste(e) {
+  const textarea = e.target;
+    const items = e.clipboardData.items;
+    
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      
+      if (item.type.startsWith('image/')) {
+        e.preventDefault();
+        
+        const file = item.getAsFile();
+        if (!file) continue;
+        
+        // Show uploading indicator
+        const cursor = textarea.selectionStart;
+        const originalText = textarea.value;
+        const uploadingText = '![Uploading image...]()';
+        
+        textarea.value = originalText.substring(0, cursor) + uploadingText + originalText.substring(cursor);
+        textarea.setSelectionRange(cursor + uploadingText.length, cursor + uploadingText.length);
+        
+        try {
+          const formData = new FormData();
+          formData.append('image', file);
+          
+          const response = await fetch('/api/images', {
+            method: 'POST',
+            body: formData,
+            credentials: 'include'
+          });
+          
+          if (!response.ok) {
+            throw new Error(`Upload failed: ${response.status}`);
+          }
+          
+          const result = await response.json();
+          const imageMarkdown = `![Image](${result.url})`;
+          
+          // Replace the uploading text with the actual image markdown
+          const currentText = textarea.value;
+          const newText = currentText.replace('![Uploading image...]()', imageMarkdown);
+          textarea.value = newText;
+          
+          // Position cursor after the inserted image
+          const newCursor = cursor + imageMarkdown.length;
+          textarea.setSelectionRange(newCursor, newCursor);
+          
+          // Trigger events for live preview (try multiple events to ensure htmx picks it up)
+          textarea.dispatchEvent(new Event('input', { bubbles: true }));
+          textarea.dispatchEvent(new Event('keyup', { bubbles: true }));
+          textarea.dispatchEvent(new Event('change', { bubbles: true }));
+          
+          // Force htmx to trigger if it's available
+          if (window.htmx) {
+            htmx.trigger(textarea, 'keyup');
+          }
+          
+        } catch (error) {
+          console.error('Image upload failed:', error);
+          
+          // Replace uploading text with error message
+          const currentText = textarea.value;
+          const errorText = `![Upload failed: ${error.message}]()`;
+          const newText = currentText.replace('![Uploading image...]()', errorText);
+          textarea.value = newText;
+          
+          const newCursor = cursor + errorText.length;
+          textarea.setSelectionRange(newCursor, newCursor);
+        }
+        
+        break;
+      }
+    }
+}
+
+// Setup on initial load
+document.addEventListener('DOMContentLoaded', setupImagePasteHandler);
+
+// Setup after htmx swaps (when navigating to editor)
+document.addEventListener('htmx:afterSwap', function(e) {
+  // Only setup if we're now on the editor page
+  if (document.getElementById('editor-content')) {
+    setupImagePasteHandler();
+  }
+});
+
+</script>
 {{end}}
