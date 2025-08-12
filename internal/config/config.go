@@ -182,7 +182,7 @@ func applyDefaults(config any) {
 				field.SetString(defaultValue)
 			}
 		case reflect.Bool:
-			if field.Bool() == false {
+			if !field.Bool() {
 				if val, err := strconv.ParseBool(defaultValue); err == nil {
 					field.SetBool(val)
 				}
@@ -316,7 +316,7 @@ func getGitCommitSHA() string {
 		// Fallback if git is not available or we're not in a git repo
 		return fmt.Sprintf("unknown-commit-%s", time.Now().Format("20060102-150405"))
 	}
-	
+
 	commit := strings.TrimSpace(string(output))
 	// Return short SHA (first 8 characters)
 	if len(commit) >= 8 {
@@ -339,7 +339,7 @@ func generateYAMLWithComments(config any) ([]byte, error) {
 
 	// Get current git commit SHA
 	gitCommit := getGitCommitSHA()
-	
+
 	// Add header
 	result.WriteString("# Configuration Reference for The Archive\n")
 	result.WriteString(fmt.Sprintf("# Generated from commit: %s\n", gitCommit))
@@ -387,25 +387,25 @@ func writeStructWithComments(w *strings.Builder, v reflect.Value, t reflect.Type
 
 		// Write field documentation
 		if description != "" {
-			w.WriteString(fmt.Sprintf("%s# %s\n", indent, description))
+			fmt.Fprintf(w, "%s# %s\n", indent, description)
 		}
 		if defaultValue != "" {
-			w.WriteString(fmt.Sprintf("%s# Default: %s\n", indent, defaultValue))
+			fmt.Fprintf(w, "%s# Default: %s\n", indent, defaultValue)
 		}
 		if validValues != "" {
-			w.WriteString(fmt.Sprintf("%s# Valid values: %s\n", indent, validValues))
+			fmt.Fprintf(w, "%s# Valid values: %s\n", indent, validValues)
 		}
 
 		// Handle nested structs
 		if field.Kind() == reflect.Struct {
-			w.WriteString(fmt.Sprintf("%s%s:\n", indent, yamlName))
+			fmt.Fprintf(w, "%s%s:\n", indent, yamlName)
 			if err := writeStructWithComments(w, field, fieldType.Type, prefix+yamlName+".", depth+1); err != nil {
 				return err
 			}
 		} else {
 			// Write field with value
 			value := formatFieldValue(field)
-			w.WriteString(fmt.Sprintf("%s%s: %s\n", indent, yamlName, value))
+			fmt.Fprintf(w, "%s%s: %s\n", indent, yamlName, value)
 		}
 
 		if i < v.NumField()-1 {

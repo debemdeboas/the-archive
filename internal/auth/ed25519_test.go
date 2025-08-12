@@ -77,7 +77,7 @@ X5g7H8Y9V2sF8b3p1LZN4h6f8e9X4D7B5Z0P4p2nF8h7gY3e2Q5k8Z0CAwEAAQ==
 
 			if tc.expectError {
 				if err == nil {
-					t.Errorf(errExpectedErrorGotNone)
+					t.Error(errExpectedErrorGotNone)
 				} else if tc.errorMsg != "" && err.Error() != tc.errorMsg {
 					t.Errorf("Expected error message '%s', got '%s'", tc.errorMsg, err.Error())
 				}

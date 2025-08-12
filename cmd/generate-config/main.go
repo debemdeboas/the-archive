@@ -194,17 +194,19 @@ func generateConstants(sb *strings.Builder, v interface{}, prefix string) error 
 		constName := prefix + fieldType.Name
 
 		if field.Kind() == reflect.Struct {
-			generateConstants(sb, field.Interface(), constName)
+			if err := generateConstants(sb, field.Interface(), constName); err != nil {
+				return err
+			}
 		} else {
 			defaultValue := fieldType.Tag.Get("default")
 			if defaultValue != "" {
 				switch field.Kind() {
 				case reflect.String:
-					sb.WriteString(fmt.Sprintf("\tDefault%s = %q\n", constName, defaultValue))
+					fmt.Fprintf(sb, "\tDefault%s = %q\n", constName, defaultValue)
 				case reflect.Bool:
-					sb.WriteString(fmt.Sprintf("\tDefault%s = %s\n", constName, defaultValue))
+					fmt.Fprintf(sb, "\tDefault%s = %s\n", constName, defaultValue)
 				case reflect.Int:
-					sb.WriteString(fmt.Sprintf("\tDefault%s = %s\n", constName, defaultValue))
+					fmt.Fprintf(sb, "\tDefault%s = %s\n", constName, defaultValue)
 				}
 			}
 		}

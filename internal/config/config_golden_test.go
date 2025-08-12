@@ -4,7 +4,6 @@ import (
 	"os"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/rs/zerolog"
 	"gopkg.in/yaml.v3"
@@ -125,7 +124,7 @@ func TestGeneratedFilesUpToDate(t *testing.T) {
 	}
 
 	// Check if defaults.yaml exists and is recent
-	info, err := os.Stat("testdata/defaults.yaml")
+	_, err := os.Stat("testdata/defaults.yaml")
 	if err != nil {
 		t.Errorf("Generated defaults.yaml not found. Run 'make config-update-tests' to generate.")
 		return
@@ -134,11 +133,6 @@ func TestGeneratedFilesUpToDate(t *testing.T) {
 	// Check if constants file exists
 	if _, err := os.Stat("config_generated_constants.go"); err != nil {
 		t.Errorf("Generated config_generated_constants.go not found. Run 'make config-update-tests' to generate.")
-	}
-
-	// Warn if files are old (more than 1 hour old in CI context)
-	if info.ModTime().Before(time.Now().Add(-1 * time.Hour)) {
-		t.Logf("Warning: Generated test files are older than 1 hour. Consider running 'make config-update-tests'")
 	}
 }
 
