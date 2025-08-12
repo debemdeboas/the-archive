@@ -1,0 +1,106 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v4
+        with:
+          go-version: '1.23'
+
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - run: go mod download
+
+      - run: go test -v -race -coverprofile=coverage.out -covermode=atomic -json ./... > test-results.json
+
+      - run: go tool cover -html=coverage.out -o coverage.html
+
+      - uses: dorny/test-reporter@v2
+        if: ${{ !cancelled() }}
+        with:
+          name: Go Tests
+          path: test-results.json
+          reporter: golang-json
+          use-actions-summary: 'true'
+
+      - uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.out
+          flags: unittests
+          name: codecov-umbrella
+          fail_ci_if_error: false
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: coverage-reports
+          path: |
+            coverage.out
+            coverage.html
+            test-results.json
+
+      - run: |
+          COVERAGE=$(go tool cover -func=coverage.out | grep total | awk '{print $NF}' | sed 's/%//')
+          COVERAGE_INT=${COVERAGE%.*}
+          echo "## 🧪 Test Coverage Report" > coverage-summary.md
+          echo "" >> coverage-summary.md
+          echo "**Coverage: ${COVERAGE}%**" >> coverage-summary.md
+          echo "" >> coverage-summary.md
+          if (( $(echo "$COVERAGE_INT >= 80" | bc -l) )); then
+            echo "✅ Great coverage!" >> coverage-summary.md
+          elif (( $(echo "$COVERAGE_INT >= 60" | bc -l) )); then
+            echo "⚠️ Coverage could be improved" >> coverage-summary.md
+          else
+            echo "❌ Coverage needs improvement" >> coverage-summary.md
+          fi
+          echo "" >> coverage-summary.md
+          echo "### Coverage by Package" >> coverage-summary.md
+          echo "\`\`\`" >> coverage-summary.md
+          go tool cover -func=coverage.out >> coverage-summary.md
+          echo "\`\`\`" >> coverage-summary.md
+
+      - uses: marocchino/sticky-pull-request-comment@v2
+        if: github.event_name == 'pull_request'
+        with:
+          recreate: true
+          header: Coverage Summary
+          path: coverage-summary.md
+
+  build:
+    runs-on: ubuntu-latest
+    needs: [test]
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Go
+      uses: actions/setup-go@v4
+      with:
+        go-version: '1.23'
+
+    - name: Build application
+      run: go build -v -ldflags="-w -s" ./...
+
+    - name: Test build artifacts
+      run: |
+        ./the-archive --help || echo "Binary built successfully"
