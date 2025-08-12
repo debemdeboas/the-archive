@@ -32,6 +32,46 @@ jobs:
 
       - run: go mod download
 
+      - name: Check config reference is up to date
+        run: |
+          # Create a script to compare files excluding git commit lines
+          cat << 'EOF' > check_config.sh
+          #!/bin/bash
+          set -e
+
+          check_file() {
+            local mode=$1
+            local filename=$2
+
+            echo "Checking $filename..."
+            go run ./cmd/generate-config -mode=$mode -output=$filename.tmp
+
+            # Compare excluding git commit SHA lines
+            sed '/^# Generated from commit:/d' $filename > $filename.clean
+            sed '/^# Generated from commit:/d' $filename.tmp > $filename.tmp.clean
+
+            if diff -q $filename.clean $filename.tmp.clean > /dev/null; then
+              echo "✅ $filename is up to date"
+            else
+              echo "❌ $filename is out of date!"
+              echo "Run 'make config-$mode' to update"
+              echo "Differences:"
+              diff $filename.clean $filename.tmp.clean || true
+              return 1
+            fi
+          }
+
+          # Check both files
+          check_file reference config.reference.yaml
+          check_file example config.example.yaml
+
+          # Cleanup
+          rm -f *.tmp *.clean
+          EOF
+
+          chmod +x check_config.sh
+          ./check_config.sh
+
       - run: go test -v -race -coverprofile=coverage.out -covermode=atomic -json ./... > test-results.json
 
       - run: go tool cover -html=coverage.out -o coverage.html

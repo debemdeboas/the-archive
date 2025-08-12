@@ -1,0 +1,136 @@
+# Configuration Reference for The Archive
+# Generated from commit: 531d1f47
+# This file shows all available configuration options with their defaults
+# Copy sections you want to customize to your config.yaml file
+
+# Configuration version for migration compatibility
+# Default: 1.0
+version: "1.0"
+
+# Site-specific settings like name and description
+site:
+  # Site name displayed in title and header
+  # Default: The Archive
+  name: "The Archive"
+
+  # Site description for SEO and about sections
+  # Default: A personal blog and knowledge archive
+  description: "A personal blog and knowledge archive"
+
+  # Tagline displayed on the homepage
+  # Default: Welcome to The Archive
+  tagline: "Welcome to The Archive"
+
+# Server configuration including host and port
+server:
+  # Server bind address (0.0.0.0 for all interfaces)
+  # Default: 0.0.0.0
+  host: "0.0.0.0"
+
+  # Server port number
+  # Default: 12600
+  port: "12600"
+
+# Theme and visual customization options
+theme:
+  # Default theme
+  # Default: dark
+  # Valid values: light,dark
+  default: "dark"
+
+  # Allow users to switch themes
+  # Default: true
+  allow_switching: true
+
+  # Syntax highlighting configuration
+  syntax_highlighting:
+    # Default syntax theme for dark mode
+    # Default: gruvbox
+    default_dark: "gruvbox"
+
+    # Default syntax theme for light mode
+    # Default: catppuccin-latte
+    default_light: "catppuccin-latte"
+
+# Post display and reload configuration
+posts:
+  # How long to wait before reloading posts (in seconds)
+  # Default: 10
+  reload_timeout: 10
+
+  # Number of posts to display per page
+  # Default: 50
+  posts_per_page: 50
+
+# Feature flags for optional functionality
+features:
+  # Authentication and security settings
+  authentication:
+    # Enable authentication system
+    # Default: true
+    enabled: true
+
+    # Authentication type
+    # Default: ed25519
+    # Valid values: ed25519
+    type: "ed25519"
+
+  # Post editor and creation features
+  editor:
+    # Enable post editor interface
+    # Default: true
+    enabled: true
+
+    # Enable live markdown preview
+    # Default: true
+    live_preview: true
+
+    # Enable draft functionality
+    # Default: false
+    enable_drafts: false
+
+  # Enable search functionality
+  search:
+    # Enable this feature
+    # Default: false
+    enabled: false
+
+  # Enable comment system
+  comments:
+    # Enable this feature
+    # Default: false
+    enabled: false
+
+# HTML meta tags and SEO configuration
+meta:
+  # Site author name for meta tags
+  author: ""
+
+  # SEO keywords for meta tags
+  # Default: blog,archive,personal
+  keywords: ["blog", "archive", "personal"]
+
+  # Path to favicon file
+  # Default: /static/favicon.ico
+  favicon: "/static/favicon.ico"
+
+# Social media links and contact information
+social:
+  # GitHub profile URL
+  github: ""
+
+  # Twitter profile URL
+  twitter: ""
+
+  # LinkedIn profile URL
+  linkedin: ""
+
+  # Contact email address
+  email: ""
+
+# Logging level and output configuration
+logging:
+  # Logging level: debug, info, warn, error
+  # Default: info
+  # Valid values: debug,info,warn,error
+  level: "info"

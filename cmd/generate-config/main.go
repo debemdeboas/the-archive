@@ -1,8 +1,13 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"os"
+	"os/exec"
+	"path/filepath"
+	"reflect"
+	"strings"
 	"time"
 
 	"github.com/debemdeboas/the-archive/internal/config"
@@ -14,33 +19,257 @@ func main() {
 	log := zerolog.New(zerolog.ConsoleWriter{Out: os.Stderr, TimeFormat: time.RFC3339}).
 		With().Timestamp().Logger()
 
-	// Create a config with defaults applied
+	var (
+		outputFile  = flag.String("output", "config.reference.yaml", "Output file path (use - for stdout)")
+		mode        = flag.String("mode", "reference", "Generation mode: reference, example, minimal")
+		updateTests = flag.Bool("update-tests", false, "Update test fixtures with current defaults")
+	)
+	flag.Parse()
+
+	config.SetLogger(log)
+
+	switch *mode {
+	case "reference":
+		if err := generateReference(*outputFile); err != nil {
+			log.Fatal().Err(err).Msg("Failed to generate reference")
+		}
+		log.Info().Str("file", *outputFile).Msg("Generated configuration reference")
+
+	case "example":
+		if err := generateExample(*outputFile); err != nil {
+			log.Fatal().Err(err).Msg("Failed to generate example")
+		}
+		log.Info().Str("file", *outputFile).Msg("Generated example configuration")
+
+	case "minimal":
+		if err := generateMinimal(*outputFile); err != nil {
+			log.Fatal().Err(err).Msg("Failed to generate minimal config")
+		}
+		log.Info().Str("file", *outputFile).Msg("Generated minimal configuration")
+
+	default:
+		log.Fatal().Str("mode", *mode).Msg("Unknown generation mode")
+	}
+
+	if *updateTests {
+		if err := updateTestFixtures(); err != nil {
+			log.Fatal().Err(err).Msg("Failed to update test fixtures")
+		}
+		log.Info().Msg("Updated test fixtures")
+	}
+}
+
+// generateReference creates a comprehensive documented config reference
+func generateReference(outputFile string) error {
+	yamlData, err := config.GenerateReference()
+	if err != nil {
+		return fmt.Errorf("failed to generate reference: %w", err)
+	}
+
+	return writeOutput(outputFile, yamlData)
+}
+
+// generateExample creates a simple example config
+func generateExample(outputFile string) error {
 	cfg := &config.Config{}
 	config.ApplyDefaults(cfg)
 
-	// Marshal to YAML
 	yamlData, err := yaml.Marshal(cfg)
 	if err != nil {
-		log.Fatal().Err(err).Msg("Error generating YAML")
+		return fmt.Errorf("failed to marshal config: %w", err)
 	}
 
-	// Add header comment
-	header := "# The Archive Configuration Example\n# Copy this file to config.yaml and customize as needed\n\n"
+	gitCommit := getGitCommitSHA()
+	header := fmt.Sprintf("# The Archive Configuration Example\n# Generated from commit: %s\n# Copy this file to config.yaml and customize as needed\n\n", gitCommit)
 	output := header + string(yamlData)
 
-	// Write to file or stdout
-	outputFile := "config.example.yaml"
-	if len(os.Args) > 1 {
-		outputFile = os.Args[1]
+	return writeOutput(outputFile, []byte(output))
+}
+
+// generateMinimal creates a minimal config with only essential settings
+func generateMinimal(outputFile string) error {
+	gitCommit := getGitCommitSHA()
+	minimalConfig := fmt.Sprintf(`# Minimal configuration for The Archive
+# Generated from commit: %s
+version: "1.0"
+
+site:
+  name: "My Blog"
+  
+server:
+  port: "12600"
+
+features:
+  authentication:
+    enabled: true
+  editor:
+    enabled: true
+`, gitCommit)
+	return writeOutput(outputFile, []byte(minimalConfig))
+}
+
+// updateTestFixtures generates useful test fixtures and validation code
+func updateTestFixtures() error {
+	cfg := &config.Config{}
+	config.ApplyDefaults(cfg)
+
+	// Create testdata directory if it doesn't exist
+	testDir := "internal/config/testdata"
+	if err := os.MkdirAll(testDir, 0755); err != nil {
+		return fmt.Errorf("failed to create testdata directory: %w", err)
 	}
 
-	if outputFile == "-" {
-		fmt.Print(output)
-	} else {
-		err = os.WriteFile(outputFile, []byte(output), 0644)
-		if err != nil {
-			log.Fatal().Err(err).Msg("Error writing file")
-		}
-		log.Info().Msgf("Generated example config: %s", outputFile)
+	// 1. Generate a full defaults config for testing
+	if err := generateDefaultsTestFile(cfg, testDir); err != nil {
+		return fmt.Errorf("failed to generate defaults test file: %w", err)
 	}
+
+	// 2. Generate test constants Go file
+	if err := generateTestConstantsFile(cfg, testDir); err != nil {
+		return fmt.Errorf("failed to generate test constants: %w", err)
+	}
+
+	// 3. Generate validation test config
+	if err := generateValidationTestFile(testDir); err != nil {
+		return fmt.Errorf("failed to generate validation test file: %w", err)
+	}
+
+	return nil
+}
+
+// generateDefaultsTestFile creates a YAML file with all defaults
+func generateDefaultsTestFile(cfg *config.Config, testDir string) error {
+	yamlData, err := yaml.Marshal(cfg)
+	if err != nil {
+		return err
+	}
+
+	gitCommit := getGitCommitSHA()
+	header := fmt.Sprintf("# Test configuration with all defaults applied\n# Generated from commit: %s\n# Auto-generated - do not edit manually\n# Use this for golden file testing\n\n", gitCommit)
+	content := header + string(yamlData)
+
+	return os.WriteFile(filepath.Join(testDir, "defaults.yaml"), []byte(content), 0644)
+}
+
+// generateTestConstantsFile creates a Go file with test constants
+func generateTestConstantsFile(cfg *config.Config, testDir string) error {
+	var sb strings.Builder
+
+	gitCommit := getGitCommitSHA()
+	sb.WriteString(fmt.Sprintf("// Code generated by generate-config --update-tests from commit %s. DO NOT EDIT.\n", gitCommit))
+	sb.WriteString("package config\n\n")
+	sb.WriteString("// Test constants for default values\n")
+	sb.WriteString("const (\n")
+
+	// Generate constants using reflection
+	if err := generateConstants(&sb, cfg, ""); err != nil {
+		return err
+	}
+
+	sb.WriteString(")\n")
+
+	return os.WriteFile("internal/config/config_generated_constants.go", []byte(sb.String()), 0644)
+}
+
+// generateConstants recursively generates constants for struct fields
+func generateConstants(sb *strings.Builder, v interface{}, prefix string) error {
+	val := reflect.ValueOf(v)
+	if val.Kind() == reflect.Ptr {
+		val = val.Elem()
+	}
+
+	if val.Kind() != reflect.Struct {
+		return nil
+	}
+
+	typ := val.Type()
+	for i := 0; i < val.NumField(); i++ {
+		field := val.Field(i)
+		fieldType := typ.Field(i)
+
+		if !field.CanInterface() {
+			continue
+		}
+
+		constName := prefix + fieldType.Name
+
+		if field.Kind() == reflect.Struct {
+			generateConstants(sb, field.Interface(), constName)
+		} else {
+			defaultValue := fieldType.Tag.Get("default")
+			if defaultValue != "" {
+				switch field.Kind() {
+				case reflect.String:
+					sb.WriteString(fmt.Sprintf("\tDefault%s = %q\n", constName, defaultValue))
+				case reflect.Bool:
+					sb.WriteString(fmt.Sprintf("\tDefault%s = %s\n", constName, defaultValue))
+				case reflect.Int:
+					sb.WriteString(fmt.Sprintf("\tDefault%s = %s\n", constName, defaultValue))
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
+// generateValidationTestFile creates test configs for validation testing
+func generateValidationTestFile(testDir string) error {
+	gitCommit := getGitCommitSHA()
+
+	// Create invalid config examples for testing validation
+	invalidConfigs := map[string]string{
+		"invalid_version.yaml": `version: "999.0"
+site:
+  name: "Test"`,
+		"invalid_auth_type.yaml": `features:
+  authentication:
+    type: "invalid_auth_type"`,
+		"invalid_theme.yaml": `theme:
+  default: "invalid_theme"`,
+		"invalid_log_level.yaml": `logging:
+  level: "invalid_level"`,
+	}
+
+	for filename, content := range invalidConfigs {
+		header := fmt.Sprintf("# Invalid config for validation testing\n# Generated from commit: %s\n# Auto-generated - do not edit manually\n\n", gitCommit)
+		fullContent := header + content
+
+		if err := os.WriteFile(filepath.Join(testDir, filename), []byte(fullContent), 0644); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// getGitCommitSHA returns the current git commit SHA, or a fallback if not available
+func getGitCommitSHA() string {
+	cmd := exec.Command("git", "rev-parse", "HEAD")
+	output, err := cmd.Output()
+	if err != nil {
+		// Fallback if git is not available or we're not in a git repo
+		return fmt.Sprintf("unknown-commit-%s", time.Now().Format("20060102-150405"))
+	}
+
+	commit := strings.TrimSpace(string(output))
+	// Return short SHA (first 8 characters)
+	if len(commit) >= 8 {
+		return commit[:8]
+	}
+	return commit
+}
+
+// writeOutput writes data to file or stdout
+func writeOutput(outputFile string, data []byte) error {
+	if outputFile == "-" {
+		fmt.Print(string(data))
+		return nil
+	}
+
+	if err := os.WriteFile(outputFile, data, 0644); err != nil {
+		return fmt.Errorf("failed to write file %s: %w", outputFile, err)
+	}
+
+	return nil
 }
