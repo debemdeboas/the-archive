@@ -228,7 +228,10 @@ func (app *Application) servePartialsPost(w http.ResponseWriter, r *http.Request
 	title := post.Title
 	w.Header().Set(config.HCType, config.CTypeHTML)
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(fmt.Sprintf("<title>%s</title>\n%s", title, htmlContent)))
+	if _, err := fmt.Fprintf(w, "<title>%s</title>\n%s", title, htmlContent); err != nil {
+		zerolog.Ctx(r.Context()).Error().Err(err).Msg("Failed to write response")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 }
 
 func (app *Application) serveNewPost(w http.ResponseWriter, r *http.Request) {
@@ -317,11 +320,16 @@ func (app *Application) serveNewPostPreview(w http.ResponseWriter, r *http.Reque
 		content = "Start typing in the editor to see a preview here."
 	}
 	htmlContent, _ := render.RenderMarkdown([]byte(content), theme.GetSyntaxThemeFromRequest(r))
+
 	w.Header().Set(config.HCType, config.CTypeHTML)
 	w.WriteHeader(http.StatusOK)
+
 	// Wrap the content in a div with the id "post-content" to match the target
 	// for the hx-swap="morph" attribute.
-	w.Write([]byte(fmt.Sprintf(`<div id="post-content">%s</div>`, htmlContent)))
+	if _, err := fmt.Fprintf(w, `<div id="post-content">%s</div>`, htmlContent); err != nil {
+		zerolog.Ctx(r.Context()).Error().Err(err).Msg("Failed to write response")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 }
 
 func cacheIt(h http.Handler) http.HandlerFunc {

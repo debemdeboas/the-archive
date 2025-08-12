@@ -1,0 +1,6 @@
+# Invalid config for validation testing
+# Generated from commit: 4be29492
+# Auto-generated - do not edit manually
+
+theme:
+  default: "invalid_theme"

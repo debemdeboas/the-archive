@@ -1,0 +1,15 @@
+# Minimal configuration for The Archive
+# Generated from commit: 531d1f47
+version: "1.0"
+
+site:
+  name: "My Blog"
+  
+server:
+  port: "12600"
+
+features:
+  authentication:
+    enabled: true
+  editor:
+    enabled: true
