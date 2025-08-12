@@ -308,12 +308,17 @@ func applyDefaultsWithMap(config any, yamlMap map[string]any, prefix string) {
 	}
 }
 
-// getGitCommitSHA returns the current git commit SHA, or a fallback if not available
-func getGitCommitSHA() string {
-	cmd := exec.Command("git", "rev-parse", "HEAD")
+// GetGitCommitSHA returns the current git commit SHA, or a fallback if not available
+func GetGitCommitSHA() string {
+	gitPath, err := exec.LookPath("git")
+	if err != nil {
+		// Fallback if git is not available
+		return fmt.Sprintf("unknown-commit-%s", time.Now().Format("20060102-150405"))
+	}
+	cmd := exec.Command(gitPath, "rev-parse", "HEAD")
 	output, err := cmd.Output()
 	if err != nil {
-		// Fallback if git is not available or we're not in a git repo
+		// Fallback if we're not in a git repo
 		return fmt.Sprintf("unknown-commit-%s", time.Now().Format("20060102-150405"))
 	}
 
@@ -338,7 +343,7 @@ func generateYAMLWithComments(config any) ([]byte, error) {
 	var result strings.Builder
 
 	// Get current git commit SHA
-	gitCommit := getGitCommitSHA()
+	gitCommit := GetGitCommitSHA()
 
 	// Add header
 	result.WriteString("# Configuration Reference for The Archive\n")
