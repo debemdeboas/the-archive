@@ -1,0 +1,101 @@
+name: PR Test Summary
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types:
+      - completed
+
+jobs:
+  comment:
+    runs-on: ubuntu-latest
+    if: >
+      github.event.workflow_run.event == 'pull_request' &&
+      github.event.workflow_run.conclusion != 'skipped'
+    steps:
+      - name: Download test results
+        uses: actions/github-script@v6
+        with:
+          script: |
+            let allArtifacts = await github.rest.actions.listWorkflowRunArtifacts({
+               owner: context.repo.owner,
+               repo: context.repo.repo,
+               run_id: context.payload.workflow_run.id,
+            });
+            let matchArtifact = allArtifacts.data.artifacts.filter((artifact) => {
+              return artifact.name == "coverage-reports"
+            })[0];
+            if (matchArtifact) {
+              let download = await github.rest.actions.downloadArtifact({
+                 owner: context.repo.owner,
+                 repo: context.repo.repo,
+                 artifact_id: matchArtifact.id,
+                 archive_format: 'zip',
+              });
+              let fs = require('fs');
+              fs.writeFileSync(`${process.env.GITHUB_WORKSPACE}/coverage.zip`, Buffer.from(download.data));
+            }
+
+      - name: Unzip coverage
+        run: |
+          if [ -f coverage.zip ]; then
+            unzip coverage.zip
+          fi
+
+      - name: Comment PR
+        uses: actions/github-script@v6
+        if: github.event.workflow_run.event == 'pull_request'
+        with:
+          script: |
+            const fs = require('fs');
+            
+            // Get PR number from workflow run
+            const { data: pullRequests } = await github.rest.pulls.list({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              head: context.payload.workflow_run.head_branch,
+            });
+            
+            if (pullRequests.length === 0) {
+              console.log('No open PR found for this branch');
+              return;
+            }
+            
+            const pr = pullRequests[0];
+            console.log(`Found PR #${pr.number}`);
+            
+            let body = `## 🚀 CI Results\n\n`;
+            
+            if (context.payload.workflow_run.conclusion === 'success') {
+              body += `✅ **All checks passed!**\n\n`;
+            } else {
+              body += `❌ **Some checks failed**\n\n`;
+            }
+            
+            // Add test results if available
+            if (fs.existsSync('test-results.json')) {
+              const testResults = JSON.parse(fs.readFileSync('test-results.json', 'utf8'));
+              const tests = testResults.filter(r => r.Action === 'pass' || r.Action === 'fail');
+              const passed = tests.filter(r => r.Action === 'pass').length;
+              const failed = tests.filter(r => r.Action === 'fail').length;
+              
+              body += `### 🧪 Tests: ${passed + failed} total\n`;
+              body += `- ✅ **${passed} passed**\n`;
+              if (failed > 0) {
+                body += `- ❌ **${failed} failed**\n`;
+              }
+              body += `\n`;
+            }
+            
+            // Add coverage if available
+            if (fs.existsSync('coverage-summary.md')) {
+              body += fs.readFileSync('coverage-summary.md', 'utf8');
+            }
+            
+            await github.rest.issues.createComment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: pr.number,
+              body: body
+            });
