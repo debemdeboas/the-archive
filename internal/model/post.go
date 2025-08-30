@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mmarkdown/mmark/v2/mast"
+	"github.com/debemdeboas/the-archive/internal/util"
 )
 
 type PostID string
@@ -27,7 +27,7 @@ type Post struct {
 	ModifiedDate time.Time
 
 	// Optional data from Mmark front matter.
-	Info *mast.TitleData
+	Info *util.ExtendedTitleData
 
 	// Optional data: owner of the post (for example, the user who created it).
 	Owner UserID

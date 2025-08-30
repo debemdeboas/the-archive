@@ -14,6 +14,7 @@ import (
 	"github.com/debemdeboas/the-archive/internal/cache"
 	"github.com/debemdeboas/the-archive/internal/config"
 	"github.com/debemdeboas/the-archive/internal/theme"
+	"github.com/debemdeboas/the-archive/internal/util"
 	"github.com/gomarkdown/markdown"
 	"github.com/gomarkdown/markdown/ast"
 	md_html "github.com/gomarkdown/markdown/html"
@@ -120,7 +121,7 @@ func RenderMarkdownClassic(md []byte, highlightTheme string) []byte {
 	return rendered
 }
 
-func RenderMarkdownMmark(md []byte, highlightTheme string) ([]byte, *mast.TitleData) {
+func RenderMarkdownMmark(md []byte, highlightTheme string) ([]byte, *util.ExtendedTitleData) {
 	md = markdown.NormalizeNewlines(md)
 
 	mparser.Extensions |= parser.NoIntraEmphasis
@@ -128,32 +129,25 @@ func RenderMarkdownMmark(md []byte, highlightTheme string) ([]byte, *mast.TitleD
 	p := parser.NewWithExtensions(mparser.Extensions)
 
 	init := mparser.NewInitial("")
-	var info *mast.TitleData
+	info := util.GetFrontMatter(md)
+	if info == nil {
+		info = &util.ExtendedTitleData{
+			TitleData: &mast.TitleData{
+				Title:    "Untitled",
+				Language: "en",
+			},
+			Consumed: 0,
+		}
+	}
 
 	p.Opts = parser.Options{
-		ParserHook: func(data []byte) (ast.Node, []byte, int) {
-			node, data, consumed := mparser.Hook(data)
-			if t, ok := node.(*mast.Title); ok {
-				info = t.TitleData
-			}
-			return node, data, consumed
-		},
 		ReadIncludeFn: init.ReadInclude,
 		Flags:         parser.FlagsNone,
 	}
 
-	doc := markdown.Parse(md, p)
+	doc := markdown.Parse(md[info.Consumed:], p)
 
 	mparser.AddIndex(doc)
-
-	// There's a possibility that info.Language is a nil pointer
-	// so we need to check for that before passing it to the lang.New function
-	if info == nil {
-		info = &mast.TitleData{
-			Title:    "Untitled",
-			Language: "en",
-		}
-	}
 
 	mhtmlOpts := mhtml.RendererOptions{
 		Language: lang.New(info.Language),

@@ -6,13 +6,17 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 
+	"github.com/BurntSushi/toml"
 	"github.com/gomarkdown/markdown"
-	"github.com/gomarkdown/markdown/ast"
-	"github.com/gomarkdown/markdown/parser"
 
 	"github.com/mmarkdown/mmark/v2/mast"
-	"github.com/mmarkdown/mmark/v2/mparser"
 )
+
+type ExtendedTitleData struct {
+	*mast.TitleData
+	Consumed     int
+	ToolbarTitle string
+}
 
 func ContentHash(content []byte) string {
 	hash := sha256.Sum256(content)
@@ -23,7 +27,7 @@ func ContentHashString(content string) string {
 	return ContentHash([]byte(content))
 }
 
-func GetFrontMatter(md []byte) *mast.TitleData {
+func GetFrontMatter(md []byte) *ExtendedTitleData {
 	md = markdown.NormalizeNewlines(md)
 	md = bytes.TrimLeft(md, "\n \t\r")
 
@@ -49,22 +53,19 @@ func GetFrontMatter(md []byte) *mast.TitleData {
 		return nil
 	}
 
-	frontMatter := md[:end]
-	var info *mast.TitleData
-
-	p := parser.NewWithExtensions(mparser.Extensions)
-	p.Opts = parser.Options{
-		ParserHook: func(data []byte) (ast.Node, []byte, int) {
-			node, data, consumed := mparser.Hook(data)
-			if t, ok := node.(*mast.Title); ok {
-				info = t.TitleData
-			}
-			return node, data, consumed
-		},
-		Flags: parser.FlagsNone,
+	frontMatter := md[3 : end-4]
+	info := &ExtendedTitleData{
+		TitleData: &mast.TitleData{},
 	}
 
-	_ = markdown.Parse(frontMatter, p)
+	if _, err := toml.Decode(string(frontMatter), info); err != nil {
+		return nil
+	}
+
+	if info.Language == "" {
+		info.Language = "en"
+	}
+	info.Consumed = end
 
 	return info
 }

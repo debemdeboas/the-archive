@@ -80,7 +80,7 @@
               hx-push-url="true"
               id="nav-go-home"
             >
-              {{.SiteName}}
+              {{if .SiteToolbarTitle}}{{.SiteToolbarTitle}}{{else}}{{.SiteName}}{{end}}
             </a>
           </h1>
         </div>
@@ -110,7 +110,7 @@
               hx-swap="outerHTML show:unset"
               hx-push-url="true"
               id="nav-go-home"
-              >{{ .SiteName }}</a
+              >{{if .SiteToolbarTitle}}{{.SiteToolbarTitle}} | {{ .SiteName }}{{else}}{{ .SiteName }}{{end}}</a
             >
           </h1>
         </div>
@@ -210,14 +210,18 @@
         {{template "content" .}}
       </div>
       <footer class="container">
-        <p>© 2025 debem solutions in technology</p>
+        <p>© 2025 debem solutions in technology | <a href="/about" hx-get="/about" hx-target="body" hx-swap="outerHTML" hx-push-url="true">about me</a></p>
       </footer>
       {{else}}
-      <div class="container">
+        {{if eq .PageURL "/about"}}
         {{template "content" .}}
-      </div>
+        {{else}}
+        <div class="container">
+          {{template "content" .}}
+        </div>
+      {{end}}
       <footer class="container">
-        <p>© 2025 debem solutions in technology</p>
+        <p>© 2025 debem solutions in technology | <a href="/about" hx-get="/about" hx-target="body" hx-swap="outerHTML" hx-push-url="true">about me</a></p>
       </footer>
       {{end}}
     </main>

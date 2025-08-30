@@ -11,11 +11,12 @@ import (
 )
 
 type PageData struct {
-	SiteName        string
-	SiteTagline     string
-	SiteDescription string
-	SiteKeywords    []string
-	SiteAuthor      string
+	SiteName         string
+	SiteTagline      string
+	SiteDescription  string
+	SiteKeywords     []string
+	SiteAuthor       string
+	SiteToolbarTitle string
 
 	PageURL string
 

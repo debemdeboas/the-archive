@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/debemdeboas/the-archive/internal/config"
+	"github.com/debemdeboas/the-archive/internal/util"
 	"github.com/mmarkdown/mmark/v2/mast"
 	"github.com/mmarkdown/mmark/v2/mast/reference"
 )
@@ -144,7 +145,7 @@ func TestPostGetTitle(t *testing.T) {
 	t.Run("GetTitle with empty Info returns Title field", func(t *testing.T) {
 		post := &Post{
 			Title: "Direct Title",
-			Info:  &mast.TitleData{},
+			Info:  &util.ExtendedTitleData{TitleData: &mast.TitleData{}},
 		}
 
 		result := post.GetTitle()
@@ -156,8 +157,10 @@ func TestPostGetTitle(t *testing.T) {
 	t.Run("GetTitle with Info.Title returns Info.Title", func(t *testing.T) {
 		post := &Post{
 			Title: "Direct Title",
-			Info: &mast.TitleData{
-				Title: "Info Title",
+			Info: &util.ExtendedTitleData{
+				TitleData: &mast.TitleData{
+					Title: "Info Title",
+				},
 			},
 		}
 
@@ -170,11 +173,13 @@ func TestPostGetTitle(t *testing.T) {
 	t.Run("GetTitle with series info prepends series", func(t *testing.T) {
 		post := &Post{
 			Title: "Direct Title",
-			Info: &mast.TitleData{
-				Title: "Episode Title",
-				SeriesInfo: reference.SeriesInfo{
-					Name:  "MySerial",
-					Value: "5",
+			Info: &util.ExtendedTitleData{
+				TitleData: &mast.TitleData{
+					Title: "Episode Title",
+					SeriesInfo: reference.SeriesInfo{
+						Name:  "MySerial",
+						Value: "5",
+					},
 				},
 			},
 		}
@@ -190,11 +195,13 @@ func TestPostGetTitle(t *testing.T) {
 		// Test with only series name
 		post1 := &Post{
 			Title: "Direct Title",
-			Info: &mast.TitleData{
-				Title: "Episode Title",
-				SeriesInfo: reference.SeriesInfo{
-					Name:  "MySerial",
-					Value: "",
+			Info: &util.ExtendedTitleData{
+				TitleData: &mast.TitleData{
+					Title: "Episode Title",
+					SeriesInfo: reference.SeriesInfo{
+						Name:  "MySerial",
+						Value: "",
+					},
 				},
 			},
 		}
@@ -207,11 +214,13 @@ func TestPostGetTitle(t *testing.T) {
 		// Test with only series value
 		post2 := &Post{
 			Title: "Direct Title",
-			Info: &mast.TitleData{
-				Title: "Episode Title",
-				SeriesInfo: reference.SeriesInfo{
-					Name:  "",
-					Value: "5",
+			Info: &util.ExtendedTitleData{
+				TitleData: &mast.TitleData{
+					Title: "Episode Title",
+					SeriesInfo: reference.SeriesInfo{
+						Name:  "",
+						Value: "5",
+					},
 				},
 			},
 		}
@@ -225,11 +234,13 @@ func TestPostGetTitle(t *testing.T) {
 	t.Run("GetTitle with empty Info.Title returns Title field", func(t *testing.T) {
 		post := &Post{
 			Title: "Direct Title",
-			Info: &mast.TitleData{
-				Title: "",
-				SeriesInfo: reference.SeriesInfo{
-					Name:  "MySerial",
-					Value: "5",
+			Info: &util.ExtendedTitleData{
+				TitleData: &mast.TitleData{
+					Title: "",
+					SeriesInfo: reference.SeriesInfo{
+						Name:  "MySerial",
+						Value: "5",
+					},
 				},
 			},
 		}
@@ -243,11 +254,13 @@ func TestPostGetTitle(t *testing.T) {
 	t.Run("GetTitle with complex series info", func(t *testing.T) {
 		post := &Post{
 			Title: "Direct Title",
-			Info: &mast.TitleData{
-				Title: "Advanced Go Patterns",
-				SeriesInfo: reference.SeriesInfo{
-					Name:  "Go-Tutorial",
-					Value: "Part-10",
+			Info: &util.ExtendedTitleData{
+				TitleData: &mast.TitleData{
+					Title: "Advanced Go Patterns",
+					SeriesInfo: reference.SeriesInfo{
+						Name:  "Go-Tutorial",
+						Value: "Part-10",
+					},
 				},
 			},
 		}
@@ -635,11 +648,13 @@ func TestModelPackageIntegration(t *testing.T) {
 		post := &Post{
 			ID:    "integration-test",
 			Title: "Integration Test Post",
-			Info: &mast.TitleData{
-				Title: "Advanced Integration Testing",
-				SeriesInfo: reference.SeriesInfo{
-					Name:  "Testing",
-					Value: "1",
+			Info: &util.ExtendedTitleData{
+				TitleData: &mast.TitleData{
+					Title: "Advanced Integration Testing",
+					SeriesInfo: reference.SeriesInfo{
+						Name:  "Testing",
+						Value: "1",
+					},
 				},
 			},
 		}

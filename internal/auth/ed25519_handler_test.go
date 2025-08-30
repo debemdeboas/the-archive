@@ -22,38 +22,38 @@ func TestEd25519ChallengeHandler(t *testing.T) {
 	handler := Ed25519ChallengeHandler(provider)
 
 	testCases := []struct {
-		name           string
-		method         string
-		expectedStatus int
-		expectJSON     bool
+		name               string
+		method             string
+		expectedStatus     int
+		expectJSON         bool
 		expectNewChallenge bool
 	}{
 		{
-			name:           "GET challenge returns a new challenge",
-			method:         http.MethodGet,
-			expectedStatus: http.StatusOK,
-			expectJSON:     true,
+			name:               "GET challenge returns a new challenge",
+			method:             http.MethodGet,
+			expectedStatus:     http.StatusOK,
+			expectJSON:         true,
 			expectNewChallenge: true,
 		},
 		{
-			name:           "POST challenge generates new challenge",
-			method:         http.MethodPost,
-			expectedStatus: http.StatusOK,
-			expectJSON:     true,
+			name:               "POST challenge generates new challenge",
+			method:             http.MethodPost,
+			expectedStatus:     http.StatusOK,
+			expectJSON:         true,
 			expectNewChallenge: true,
 		},
 		{
-			name:           "PUT method not allowed",
-			method:         http.MethodPut,
-			expectedStatus: http.StatusMethodNotAllowed,
-			expectJSON:     false,
+			name:               "PUT method not allowed",
+			method:             http.MethodPut,
+			expectedStatus:     http.StatusMethodNotAllowed,
+			expectJSON:         false,
 			expectNewChallenge: false,
 		},
 		{
-			name:           "DELETE method not allowed",
-			method:         http.MethodDelete,
-			expectedStatus: http.StatusMethodNotAllowed,
-			expectJSON:     false,
+			name:               "DELETE method not allowed",
+			method:             http.MethodDelete,
+			expectedStatus:     http.StatusMethodNotAllowed,
+			expectJSON:         false,
 			expectNewChallenge: false,
 		},
 	}
@@ -99,7 +99,7 @@ func TestEd25519ChallengeHandler(t *testing.T) {
 				// Check if challenge changed when expected
 				newChallenge := provider.GetChallenge()
 				challengeChanged := !strings.EqualFold(string(originalChallenge), string(newChallenge))
-				
+
 				if tc.expectNewChallenge && !challengeChanged {
 					t.Error("Expected challenge to change, but it didn't")
 				}
@@ -183,7 +183,7 @@ func TestEd25519VerifyHandler(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			req := httptest.NewRequest(tc.method, "/auth/verify", nil)
-			
+
 			if tc.authHeader != "" {
 				req.Header.Set("Authorization", tc.authHeader)
 			}
@@ -373,4 +373,3 @@ func TestEd25519AuthPageHandler_TemplateError(t *testing.T) {
 		t.Errorf("Expected status %d for template error, got %d", http.StatusInternalServerError, recorder.Code)
 	}
 }
-

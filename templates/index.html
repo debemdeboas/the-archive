@@ -1,5 +1,9 @@
 {{define "title"}}
-{{ $.SiteName }}
+{{if .SiteToolbarTitle }}
+{{ .SiteToolbarTitle }} - {{.SiteName }}
+{{else}}
+{{.SiteName }}
+{{end}}
 {{end}}
 
 {{define "content"}}
@@ -16,7 +20,7 @@
     class="post-item"
   >
     <span class="post-title">{{.Title}}</span>
-    <span class="post-id">{{printf "%.6s" .ID}}</span>
+    <span class="post-id">{{.ModifiedDate.Format "02-Jan-2006"}}</span>
   </li>
   {{end}}
 </ul>

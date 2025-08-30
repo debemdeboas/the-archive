@@ -31,6 +31,17 @@ type Config struct {
 	Meta     MetaConfig     `yaml:"meta" description:"HTML meta tags and SEO configuration"`
 	Social   SocialConfig   `yaml:"social" description:"Social media links and contact information"`
 	Logging  LoggingConfig  `yaml:"logging" description:"Logging level and output configuration"`
+	Profile  ProfileConfig  `yaml:"profile" description:"Profile page configuration"`
+}
+
+// ProfileConfig holds configuration for the profile page
+type ProfileConfig struct {
+	Enabled     bool   `yaml:"enabled" default:"true" description:"Enable the profile page"`
+	Name        string `yaml:"name" default:"rafael almeida de bem" description:"Name displayed on the profile page"`
+	ImageURL    string `yaml:"image_url" default:"https://avatars.githubusercontent.com/u/35022953?v=4" description:"URL for the profile picture"`
+	CVURL       string `yaml:"cv_url" default:"https://cv.debem.dev" description:"URL to the curriculum vitae"`
+	Email       string `yaml:"email" default:"rafael.bem@debem.dev" description:"Contact email address"`
+	ContentFile string `yaml:"content_file" default:"profile.md" description:"Path to the markdown file for profile content"`
 }
 
 // LoggingConfig holds configuration for logging

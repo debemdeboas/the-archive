@@ -5,6 +5,7 @@ import (
 	"embed"
 	"encoding/hex"
 	"fmt"
+	"html"
 	"html/template"
 	"io"
 	"io/fs"
@@ -16,7 +17,6 @@ import (
 	"time"
 
 	"github.com/joho/godotenv"
-	"github.com/mmarkdown/mmark/v2/mast"
 	"github.com/rs/zerolog"
 
 	"github.com/debemdeboas/the-archive/internal/auth"
@@ -128,6 +128,7 @@ func main() {
 	// Serve uploaded images from filesystem
 	mux.Handle("/static/uploads/", http.StripPrefix("/static/uploads/", http.FileServer(http.Dir("static/uploads/"))))
 
+	mux.HandleFunc(routes.AboutPath, app.serveProfile)
 	mux.HandleFunc(config.PostsURLPath, app.servePost)
 	mux.HandleFunc(routes.PartialsPost, app.servePartialsPost)
 
@@ -395,7 +396,7 @@ func (app *Application) servePost(w http.ResponseWriter, r *http.Request) {
 	htmlContent, extra := render.RenderMarkdownCached(post.Markdown, post.MDContentHash, syntaxTheme)
 	post.Path = postID
 	post.Content = template.HTML(htmlContent)
-	post.Info = extra.(*mast.TitleData)
+	post.Info = extra.(*util.ExtendedTitleData)
 
 	// Warm cache for adjacent posts
 	go func() {
@@ -409,6 +410,7 @@ func (app *Application) servePost(w http.ResponseWriter, r *http.Request) {
 			go render.WarmCache(next.Markdown, next.MDContentHash, syntaxTheme)
 		}
 	}()
+
 	data := struct {
 		*model.PageData
 		Post *model.Post
@@ -416,7 +418,18 @@ func (app *Application) servePost(w http.ResponseWriter, r *http.Request) {
 		PageData: model.NewPageData(r),
 		Post:     post,
 	}
-	tmpl, err := template.ParseFS(content, config.TemplatesLocalDir+"/"+config.TemplateLayout, config.TemplatesLocalDir+"/"+config.TemplatePost)
+
+	if post.Info.ToolbarTitle != "" {
+		data.SiteToolbarTitle = post.Info.ToolbarTitle
+	} else {
+		data.SiteToolbarTitle = post.Title
+	}
+
+	tmpl, err := template.ParseFS(
+		content,
+		config.TemplatesLocalDir+"/"+config.TemplateLayout,
+		config.TemplatesLocalDir+"/"+config.TemplatePost,
+	)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -674,4 +687,56 @@ func (app *Application) handleAPIImages(w http.ResponseWriter, r *http.Request) 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	fmt.Fprintf(w, `{"url": "%s"}`, imageURL)
+}
+
+func (app *Application) serveProfile(w http.ResponseWriter, r *http.Request) {
+	l := zerolog.Ctx(r.Context())
+
+	if !config.AppConfig.Profile.Enabled {
+		http.NotFound(w, r)
+		return
+	}
+
+	// Read local profile markdown file from config
+	readmeContent, err := os.ReadFile(config.AppConfig.Profile.ContentFile)
+	if err != nil {
+		l.Error().Err(err).Str("file", config.AppConfig.Profile.ContentFile).Msg("Failed to read profile content file")
+		http.Error(w, "Profile data not found", http.StatusNotFound)
+		return
+	}
+
+	// Render markdown to HTML
+	htmlContent, frontMatter := render.RenderMarkdown(readmeContent, theme.GetSyntaxThemeFromRequest(r))
+	unescapedHTML := html.UnescapeString(string(htmlContent))
+
+	data := struct {
+		*model.PageData
+		ProfileContent template.HTML
+		ProfileName    string
+		ProfileImage   string
+		ProfileCVURL   string
+		ProfileEmail   string
+	}{
+		PageData:       model.NewPageData(r),
+		ProfileContent: template.HTML(unescapedHTML),
+		ProfileName:    config.AppConfig.Profile.Name,
+		ProfileImage:   config.AppConfig.Profile.ImageURL,
+		ProfileCVURL:   config.AppConfig.Profile.CVURL,
+		ProfileEmail:   config.AppConfig.Profile.Email,
+	}
+
+	data.SiteToolbarTitle = frontMatter.(*util.ExtendedTitleData).ToolbarTitle
+
+	tmpl, err := template.ParseFS(content, config.TemplatesLocalDir+"/"+config.TemplateLayout, config.TemplatesLocalDir+"/about.html")
+	if err != nil {
+		l.Error().Err(err).Msg("Failed to parse profile template")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	err = tmpl.ExecuteTemplate(w, config.TemplateLayout, data)
+	if err != nil {
+		l.Error().Err(err).Msg("Failed to execute profile template")
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
 }

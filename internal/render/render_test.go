@@ -87,7 +87,7 @@ func TestRenderMarkdownCached(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// First call - cache miss
 			html1, extra1 := RenderMarkdownCached(tt.markdown, tt.contentHash, tt.syntaxTheme)
-			
+
 			if tt.expectHTML && len(html1) == 0 {
 				t.Error("Expected rendered HTML, got empty")
 			}
@@ -98,7 +98,7 @@ func TestRenderMarkdownCached(t *testing.T) {
 
 			// Second call - cache hit
 			html2, extra2 := RenderMarkdownCached(tt.markdown, tt.contentHash, tt.syntaxTheme)
-			
+
 			if !bytes.Equal(html1, html2) {
 				t.Error("Cache hit should return identical HTML")
 			}
@@ -111,7 +111,7 @@ func TestRenderMarkdownCached(t *testing.T) {
 
 func TestCacheKeyUniqueness(t *testing.T) {
 	setupTest()
-	
+
 	tests := []struct {
 		name        string
 		contentHash string
@@ -119,8 +119,8 @@ func TestCacheKeyUniqueness(t *testing.T) {
 		markdown    []byte
 	}{
 		{"combo1", "hash-1", "github", []byte("# Test")},
-		{"combo2", "hash-1", "monokai", []byte("# Test")}, // Same hash, different theme
-		{"combo3", "hash-2", "github", []byte("# Different")}, // Different hash, same theme
+		{"combo2", "hash-1", "monokai", []byte("# Test")},      // Same hash, different theme
+		{"combo3", "hash-2", "github", []byte("# Different")},  // Different hash, same theme
 		{"combo4", "hash-2", "monokai", []byte("# Different")}, // Both different
 	}
 
@@ -156,17 +156,17 @@ func TestCacheKeyUniqueness(t *testing.T) {
 
 func TestCacheConcurrency(t *testing.T) {
 	setupTest()
-	
+
 	const numGoroutines = 100
 	const numIterations = 10
-	
+
 	markdown := []byte("# Concurrent Test\n\nContent with `code`")
 	contentHash := "concurrent-hash"
 	syntaxTheme := "github"
-	
+
 	var wg sync.WaitGroup
 	results := make(chan []byte, numGoroutines*numIterations)
-	
+
 	// Start multiple goroutines rendering the same content
 	for i := 0; i < numGoroutines; i++ {
 		wg.Add(1)
@@ -178,28 +178,28 @@ func TestCacheConcurrency(t *testing.T) {
 			}
 		}()
 	}
-	
+
 	wg.Wait()
 	close(results)
-	
+
 	// Collect all results
 	var allResults [][]byte
 	for result := range results {
 		allResults = append(allResults, result)
 	}
-	
+
 	// Verify all results are identical (cache working correctly)
 	if len(allResults) != numGoroutines*numIterations {
 		t.Fatalf("Expected %d results, got %d", numGoroutines*numIterations, len(allResults))
 	}
-	
+
 	firstResult := allResults[0]
 	for i, result := range allResults {
 		if !bytes.Equal(result, firstResult) {
 			t.Errorf("Result %d differs from first result", i)
 		}
 	}
-	
+
 	// Verify content is cached (don't check extra data in concurrency test)
 	cached, found := cache.GetRenderedMarkdown(contentHash, syntaxTheme)
 	if !found {
@@ -212,33 +212,33 @@ func TestCacheConcurrency(t *testing.T) {
 
 func TestCacheInvalidation(t *testing.T) {
 	setupTest()
-	
+
 	markdown1 := []byte("# Original Content")
 	markdown2 := []byte("# Modified Content")
 	contentHash1 := "hash-original"
 	contentHash2 := "hash-modified"
 	syntaxTheme := "github"
-	
+
 	// Cache first content
 	html1, extra1 := RenderMarkdownCached(markdown1, contentHash1, syntaxTheme)
 	assertCacheEntry(t, contentHash1, syntaxTheme, html1, extra1)
-	
+
 	// Cache second content (simulating content change with new hash)
 	html2, extra2 := RenderMarkdownCached(markdown2, contentHash2, syntaxTheme)
 	assertCacheEntry(t, contentHash2, syntaxTheme, html2, extra2)
-	
+
 	// Both should be cached with different keys
 	if bytes.Equal(html1, html2) {
 		t.Error("Different content should produce different HTML")
 	}
-	
+
 	// Original content should still be cached
 	assertCacheEntry(t, contentHash1, syntaxTheme, html1, extra1)
 }
 
 func TestEdgeCases(t *testing.T) {
 	setupTest()
-	
+
 	tests := []struct {
 		name        string
 		markdown    []byte
@@ -275,18 +275,18 @@ func TestEdgeCases(t *testing.T) {
 			description: "Should handle unicode content",
 		},
 	}
-	
+
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			html, extra := RenderMarkdownCached(tt.markdown, tt.contentHash, tt.syntaxTheme)
-			
+
 			if len(html) == 0 {
 				t.Errorf("Expected HTML output for case: %s", tt.description)
 			}
-			
+
 			// Verify caching works
 			assertCacheEntry(t, tt.contentHash, tt.syntaxTheme, html, extra)
-			
+
 			// Verify cache hit returns same content
 			html2, extra2 := RenderMarkdownCached(tt.markdown, tt.contentHash, tt.syntaxTheme)
 			if !bytes.Equal(html, html2) {
@@ -301,7 +301,7 @@ func TestEdgeCases(t *testing.T) {
 
 func BenchmarkRenderMarkdownCached(b *testing.B) {
 	cache.ClearRenderedMarkdownCache()
-	
+
 	markdown := []byte(`# Performance Test
 	
 This is a test document with some **bold text** and *italic text*.
@@ -321,12 +321,12 @@ And some math: $E = mc^2$
 
 More content here to make it substantial.
 `)
-	
+
 	contentHash := "perf-test-hash"
 	syntaxTheme := "github"
-	
+
 	b.ResetTimer()
-	
+
 	for i := 0; i < b.N; i++ {
 		RenderMarkdownCached(markdown, contentHash, syntaxTheme)
 	}
@@ -352,11 +352,11 @@ And some math: $E = mc^2$
 
 More content here to make it substantial.
 `)
-	
+
 	syntaxTheme := "github"
-	
+
 	b.ResetTimer()
-	
+
 	for i := 0; i < b.N; i++ {
 		RenderMarkdown(markdown, syntaxTheme)
 	}
@@ -364,20 +364,20 @@ More content here to make it substantial.
 
 func BenchmarkCacheHitVsMiss(b *testing.B) {
 	setupTest()
-	
+
 	markdown := []byte("# Simple test content\n\nWith some text.")
 	contentHash := "bench-hash"
 	syntaxTheme := "github"
-	
+
 	// Pre-populate cache
 	RenderMarkdownCached(markdown, contentHash, syntaxTheme)
-	
+
 	b.Run("CacheHit", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			RenderMarkdownCached(markdown, contentHash, syntaxTheme)
 		}
 	})
-	
+
 	b.Run("CacheMiss", func(b *testing.B) {
 		for i := 0; i < b.N; i++ {
 			// Use different hash each time to force cache miss

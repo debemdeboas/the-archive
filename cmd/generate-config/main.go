@@ -244,7 +244,6 @@ site:
 	return nil
 }
 
-
 // writeOutput writes data to file or stdout
 func writeOutput(outputFile string, data []byte) error {
 	if outputFile == "-" {
