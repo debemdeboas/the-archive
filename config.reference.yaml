@@ -1,5 +1,5 @@
 # Configuration Reference for The Archive
-# Generated from commit: 4be29492
+# Generated from commit: 90973e03
 # This file shows all available configuration options with their defaults
 # Copy sections you want to customize to your config.yaml file
 
@@ -134,3 +134,29 @@ logging:
   # Default: info
   # Valid values: debug,info,warn,error
   level: "info"
+
+# Profile page configuration
+profile:
+  # Enable the profile page
+  # Default: true
+  enabled: true
+
+  # Name displayed on the profile page
+  # Default: rafael almeida de bem
+  name: "rafael almeida de bem"
+
+  # URL for the profile picture
+  # Default: https://avatars.githubusercontent.com/u/35022953?v=4
+  image_url: "https://avatars.githubusercontent.com/u/35022953?v=4"
+
+  # URL to the curriculum vitae
+  # Default: https://cv.debem.dev
+  cv_url: "https://cv.debem.dev"
+
+  # Contact email address
+  # Default: rafael.bem@debem.dev
+  email: "rafael.bem@debem.dev"
+
+  # Path to the markdown file for profile content
+  # Default: profile.md
+  content_file: "profile.md"

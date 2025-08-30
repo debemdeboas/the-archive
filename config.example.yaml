@@ -1,5 +1,5 @@
 # The Archive Configuration Example
-# Generated from commit: 531d1f47
+# Generated from commit: 90973e03
 # Copy this file to config.yaml and customize as needed
 
 version: "1.0"
@@ -45,3 +45,10 @@ social:
     email: ""
 logging:
     level: info
+profile:
+    enabled: true
+    name: rafael almeida de bem
+    image_url: https://avatars.githubusercontent.com/u/35022953?v=4
+    cv_url: https://cv.debem.dev
+    email: rafael.bem@debem.dev
+    content_file: profile.md
