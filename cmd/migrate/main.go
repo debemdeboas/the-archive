@@ -62,7 +62,7 @@ func processFile(dirPath string, file os.DirEntry, repo repository.PostRepositor
 		return err
 	}
 
-	frontMatter := util.GetFrontMatter(content)
+	frontMatter, _ := util.GetFrontMatter(content)
 
 	// Determine the title: use front matter if available, otherwise use the file name
 	title := strings.TrimSuffix(file.Name(), ".md")

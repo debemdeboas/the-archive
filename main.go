@@ -552,7 +552,8 @@ func (app *Application) handleAPIPosts(w http.ResponseWriter, r *http.Request) {
 		post.Markdown = []byte(content)
 		post.Owner = usrID
 		post.Path = string(post.ID)
-		frontMatter := util.GetFrontMatter(post.Markdown)
+		frontMatter, err := util.GetFrontMatter(post.Markdown)
+		l.Warn().Err(err).Msg("Front matter parsing error")
 		if frontMatter != nil && frontMatter.Title != "" {
 			post.Title = frontMatter.Title
 		} else {
@@ -575,10 +576,13 @@ func (app *Application) handleAPIPosts(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		post.Markdown = []byte(content)
-		frontMatter := util.GetFrontMatter(post.Markdown)
-		if frontMatter != nil && frontMatter.Title != "" && post.Title != frontMatter.Title {
+		frontMatter, err := util.GetFrontMatter(post.Markdown)
+		if err != nil {
+			l.Warn().Err(err).Msg("Front matter parsing error")
+		} else if frontMatter != nil && frontMatter.Title != "" && post.Title != frontMatter.Title {
 			post.Title = frontMatter.Title
 		}
+
 		if err := app.postRepo.SetPostContent(post); err != nil {
 			l.Error().Err(err).Str("post_id", string(post.ID)).Str("user_id", string(usrID)).Msg("Failed to set post content")
 			http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -725,7 +729,12 @@ func (app *Application) serveProfile(w http.ResponseWriter, r *http.Request) {
 		ProfileEmail:   config.AppConfig.Profile.Email,
 	}
 
-	data.SiteToolbarTitle = frontMatter.(*util.ExtendedTitleData).ToolbarTitle
+	if extTitleData, ok := frontMatter.(*util.ExtendedTitleData); ok {
+		data.SiteToolbarTitle = extTitleData.ToolbarTitle
+	} else {
+		l.Warn().Msg("Failed to cast front matter to ExtendedTitleData")
+		data.SiteToolbarTitle = ""
+	}
 
 	tmpl, err := template.ParseFS(content, config.TemplatesLocalDir+"/"+config.TemplateLayout, config.TemplatesLocalDir+"/about.html")
 	if err != nil {

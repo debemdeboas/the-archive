@@ -129,8 +129,8 @@ func RenderMarkdownMmark(md []byte, highlightTheme string) ([]byte, *util.Extend
 	p := parser.NewWithExtensions(mparser.Extensions)
 
 	init := mparser.NewInitial("")
-	info := util.GetFrontMatter(md)
-	if info == nil {
+	info, err := util.GetFrontMatter(md)
+	if err != nil {
 		info = &util.ExtendedTitleData{
 			TitleData: &mast.TitleData{
 				Title:    "Untitled",
