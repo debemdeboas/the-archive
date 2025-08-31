@@ -537,7 +537,6 @@ func (app *Application) handleAPIPosts(w http.ResponseWriter, r *http.Request) {
 	usrID, err := app.authProvider.EnforceUserAndGetID(w, r)
 	if err != nil {
 		l.Error().Err(err).Str("method", r.Method).Str("path", r.URL.Path).Msg("Unauthorized access attempt")
-		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 		return
 	}
 	switch r.Method {
