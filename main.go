@@ -552,13 +552,18 @@ func (app *Application) handleAPIPosts(w http.ResponseWriter, r *http.Request) {
 		post.Markdown = []byte(content)
 		post.Owner = usrID
 		post.Path = string(post.ID)
+
 		frontMatter, err := util.GetFrontMatter(post.Markdown)
-		l.Warn().Err(err).Msg("Front matter parsing error")
+		if err != nil {
+			l.Warn().Err(err).Msg("Front matter parsing error")
+		}
+
 		if frontMatter != nil && frontMatter.Title != "" {
 			post.Title = frontMatter.Title
 		} else {
 			post.Title = "Untitled - " + post.CreatedDate.Format("2006-01-02")
 		}
+
 		if err := app.postRepo.SavePost(post); err != nil {
 			l.Error().Err(err).Str("post_id", string(post.ID)).Str("user_id", string(usrID)).Msg("Failed to save post")
 			http.Error(w, err.Error(), http.StatusInternalServerError)
