@@ -78,10 +78,13 @@ func (r *FSPostRepository) GetPosts() ([]model.Post, map[string]*model.Post, err
 				return nil, nil, err
 			}
 
-			info := util.GetFrontMatter(mdContent)
-			if info == nil {
-				info = &mast.TitleData{
-					Title: name,
+			info, err := util.GetFrontMatter(mdContent)
+			if err != nil {
+				info = &util.ExtendedTitleData{
+					TitleData: &mast.TitleData{
+						Title: name,
+					},
+					ToolbarTitle: name,
 				}
 			}
 

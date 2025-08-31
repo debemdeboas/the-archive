@@ -20,14 +20,14 @@ import (
 
 // Ed25519AuthProvider implements AuthProvider with Ed25519-based auth
 type Ed25519AuthProvider struct {
-	publicKey         ed25519.PublicKey
-	headerName        string
-	cookieName        string
-	userID            model.UserID
-	challenge         []byte
+	publicKey          ed25519.PublicKey
+	headerName         string
+	cookieName         string
+	userID             model.UserID
+	challenge          []byte
 	challengeCreatedAt time.Time
-	challengeTTL      time.Duration
-	mutex             sync.RWMutex
+	challengeTTL       time.Duration
+	mutex              sync.RWMutex
 }
 
 // NewEd25519AuthProvider creates a new Ed25519-based auth provider
@@ -53,13 +53,13 @@ func NewEd25519AuthProvider(publicKeyPEM string, headerName string, userID model
 	}
 
 	return &Ed25519AuthProvider{
-		publicKey:         publicKey,
-		headerName:        headerName,
-		cookieName:        config.CookieAuthToken,
-		userID:            userID,
-		challenge:         challenge,
+		publicKey:          publicKey,
+		headerName:         headerName,
+		cookieName:         config.CookieAuthToken,
+		userID:             userID,
+		challenge:          challenge,
 		challengeCreatedAt: time.Now(),
-		challengeTTL:      5 * time.Minute, // 5 minute TTL
+		challengeTTL:       5 * time.Minute, // 5 minute TTL
 	}, nil
 }
 
@@ -101,7 +101,7 @@ func (p *Ed25519AuthProvider) WithHeaderAuthorization() func(http.Handler) http.
 				currentChallenge := make([]byte, len(p.challenge))
 				copy(currentChallenge, p.challenge)
 				p.mutex.RUnlock()
-				
+
 				// Auto-refresh expired challenge
 				if challengeExpired {
 					l.Debug().Msg("Challenge expired, auto-refreshing")
@@ -110,7 +110,7 @@ func (p *Ed25519AuthProvider) WithHeaderAuthorization() func(http.Handler) http.
 					next.ServeHTTP(w, r)
 					return
 				}
-				
+
 				if ed25519.Verify(p.publicKey, currentChallenge, signature) {
 					// Signature valid, set user ID in context and proceed
 					ctx := r.Context()
@@ -146,7 +146,7 @@ func (p *Ed25519AuthProvider) HandleWebhookUser(w http.ResponseWriter, r *http.R
 func (p *Ed25519AuthProvider) GetChallenge() []byte {
 	p.mutex.RLock()
 	defer p.mutex.RUnlock()
-	
+
 	challenge := make([]byte, len(p.challenge))
 	copy(challenge, p.challenge)
 	return challenge
@@ -165,10 +165,10 @@ func (p *Ed25519AuthProvider) RefreshChallenge() error {
 		authLogger.Error().Err(err).Msg("Failed to generate challenge")
 		return fmt.Errorf("failed to generate challenge: %w", err)
 	}
-	
+
 	p.mutex.Lock()
 	defer p.mutex.Unlock()
-	
+
 	p.challenge = challenge
 	p.challengeCreatedAt = time.Now()
 	return nil

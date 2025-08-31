@@ -9,7 +9,7 @@ func TestGetFrontMatter(t *testing.T) {
 	testCases := []struct {
 		name          string
 		markdown      []byte
-		expectNil     bool
+		expectError   bool
 		expectedTitle string
 		expectedDate  time.Time
 	}{
@@ -20,7 +20,7 @@ title = "Hello World"
 date = 2025-01-01 00:00:00Z
 %%%
 # Content`),
-			expectNil:     false,
+			expectError:   false,
 			expectedTitle: "Hello World",
 			expectedDate:  time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
 		},
@@ -28,12 +28,12 @@ date = 2025-01-01 00:00:00Z
 			name: "No Front Matter",
 			markdown: []byte(`# Just Content
 No front matter here.`),
-			expectNil: true,
+			expectError: true,
 		},
 		{
-			name:      "Empty File",
-			markdown:  []byte(""),
-			expectNil: true,
+			name:        "Empty File",
+			markdown:    []byte(""),
+			expectError: true,
 		},
 		{
 			name: "Content Before Front Matter",
@@ -44,7 +44,7 @@ title = "Hello World"
 date = 2025-01-01 00:00:00Z
 %%%
 # Content`),
-			expectNil: true,
+			expectError: true,
 		},
 		{
 			name: "Extra Whitespace",
@@ -58,7 +58,7 @@ date = 2025-01-01 00:00:00Z
 
 %%%
 # Content`),
-			expectNil:     false,
+			expectError:   false,
 			expectedTitle: "Hello World",
 			expectedDate:  time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
 		},
@@ -67,7 +67,7 @@ date = 2025-01-01 00:00:00Z
 			markdown: []byte(`%%%
 title = "Incomplete
 # Content`),
-			expectNil: true,
+			expectError: true,
 		},
 		{
 			name: "Front Matter with No Title",
@@ -75,7 +75,7 @@ title = "Incomplete
 date = 2025-01-01 00:00:00Z
 %%%
 # Content`),
-			expectNil:     false,
+			expectError:   false,
 			expectedTitle: "",
 			expectedDate:  time.Date(2025, 1, 1, 0, 0, 0, 0, time.UTC),
 		},
@@ -85,32 +85,37 @@ date = 2025-01-01 00:00:00Z
 title = "No Date"
 %%%
 # Content`),
-			expectNil:     false,
+			expectError:   false,
 			expectedTitle: "No Date",
 			expectedDate:  time.Time{}, // Zero value for time
 		},
 		{
-			name:          "Only Delimiters",
-			markdown:      []byte("%%% %%%"),
-			expectNil:     true,
-			expectedTitle: "",
-			expectedDate:  time.Time{},
+			name:        "Only Delimiters",
+			markdown:    []byte("%%% %%%"),
+			expectError: true,
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			info := GetFrontMatter(tc.markdown)
+			info, err := GetFrontMatter(tc.markdown)
 
-			if tc.expectNil {
+			if tc.expectError {
+				if err == nil {
+					t.Errorf("Expected error, but got none")
+				}
 				if info != nil {
-					t.Errorf("Expected nil front matter, but got %+v", info)
+					t.Errorf("Expected nil info when error occurs, but got %+v", info)
 				}
 				return
 			}
 
+			if err != nil {
+				t.Fatalf("Expected no error, but got: %v", err)
+			}
+
 			if info == nil {
-				t.Fatal("Expected front matter, but got nil")
+				t.Fatal("Expected front matter info, but got nil")
 			}
 
 			if info.Title != tc.expectedTitle {

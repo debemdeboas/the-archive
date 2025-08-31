@@ -5,14 +5,19 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"encoding/hex"
+	"fmt"
 
+	"github.com/BurntSushi/toml"
 	"github.com/gomarkdown/markdown"
-	"github.com/gomarkdown/markdown/ast"
-	"github.com/gomarkdown/markdown/parser"
 
 	"github.com/mmarkdown/mmark/v2/mast"
-	"github.com/mmarkdown/mmark/v2/mparser"
 )
+
+type ExtendedTitleData struct {
+	*mast.TitleData
+	Consumed     int
+	ToolbarTitle string
+}
 
 func ContentHash(content []byte) string {
 	hash := sha256.Sum256(content)
@@ -23,7 +28,7 @@ func ContentHashString(content string) string {
 	return ContentHash([]byte(content))
 }
 
-func GetFrontMatter(md []byte) *mast.TitleData {
+func GetFrontMatter(md []byte) (*ExtendedTitleData, error) {
 	md = markdown.NormalizeNewlines(md)
 	md = bytes.TrimLeft(md, "\n \t\r")
 
@@ -31,40 +36,37 @@ func GetFrontMatter(md []byte) *mast.TitleData {
 
 	// Check if md is long enough to contain the delimiter
 	if len(md) < 2*len(delimiter) {
-		return nil
+		return nil, fmt.Errorf("invalid front matter format")
 	}
 
 	first := bytes.Index(md[:len(delimiter)+1], delimiter)
 	if first == -1 {
-		return nil
+		return nil, fmt.Errorf("invalid front matter format")
 	}
 
 	second := bytes.Index(md[first+len(delimiter):], delimiter)
 	if second == -1 {
-		return nil
+		return nil, fmt.Errorf("invalid front matter format")
 	}
 
 	end := second + 2*len(delimiter) + 1
 	if end > len(md) {
-		return nil
+		return nil, fmt.Errorf("invalid front matter format")
 	}
 
-	frontMatter := md[:end]
-	var info *mast.TitleData
-
-	p := parser.NewWithExtensions(mparser.Extensions)
-	p.Opts = parser.Options{
-		ParserHook: func(data []byte) (ast.Node, []byte, int) {
-			node, data, consumed := mparser.Hook(data)
-			if t, ok := node.(*mast.Title); ok {
-				info = t.TitleData
-			}
-			return node, data, consumed
-		},
-		Flags: parser.FlagsNone,
+	frontMatter := md[len(delimiter) : end-len(delimiter)-1]
+	info := &ExtendedTitleData{
+		TitleData: &mast.TitleData{},
 	}
 
-	_ = markdown.Parse(frontMatter, p)
+	if _, err := toml.Decode(string(frontMatter), info); err != nil {
+		return nil, fmt.Errorf("failed to decode front matter: %w", err)
+	}
 
-	return info
+	if info.Language == "" {
+		info.Language = "en"
+	}
+	info.Consumed = end
+
+	return info, nil
 }

@@ -3,25 +3,25 @@ package config
 
 // Test constants for default values
 const (
-	DefaultVersion = "1.0"
-	DefaultSiteName = "The Archive"
-	DefaultSiteDescription = "A personal blog and knowledge archive"
-	DefaultSiteTagline = "Welcome to The Archive"
-	DefaultServerHost = "0.0.0.0"
-	DefaultServerPort = "12600"
-	DefaultThemeDefault = "dark"
-	DefaultThemeAllowSwitching = true
-	DefaultThemeSyntaxHighlightingDefaultDark = "gruvbox"
+	DefaultVersion                             = "1.0"
+	DefaultSiteName                            = "The Archive"
+	DefaultSiteDescription                     = "A personal blog and knowledge archive"
+	DefaultSiteTagline                         = "Welcome to The Archive"
+	DefaultServerHost                          = "0.0.0.0"
+	DefaultServerPort                          = "12600"
+	DefaultThemeDefault                        = "dark"
+	DefaultThemeAllowSwitching                 = true
+	DefaultThemeSyntaxHighlightingDefaultDark  = "gruvbox"
 	DefaultThemeSyntaxHighlightingDefaultLight = "catppuccin-latte"
-	DefaultPostsReloadTimeout = 10
-	DefaultPostsPostsPerPage = 50
-	DefaultFeaturesAuthenticationEnabled = true
-	DefaultFeaturesAuthenticationType = "ed25519"
-	DefaultFeaturesEditorEnabled = true
-	DefaultFeaturesEditorLivePreview = true
-	DefaultFeaturesEditorEnableDrafts = false
-	DefaultFeaturesSearchEnabled = false
-	DefaultFeaturesCommentsEnabled = false
-	DefaultMetaFavicon = "/static/favicon.ico"
-	DefaultLoggingLevel = "info"
+	DefaultPostsReloadTimeout                  = 10
+	DefaultPostsPostsPerPage                   = 50
+	DefaultFeaturesAuthenticationEnabled       = true
+	DefaultFeaturesAuthenticationType          = "ed25519"
+	DefaultFeaturesEditorEnabled               = true
+	DefaultFeaturesEditorLivePreview           = true
+	DefaultFeaturesEditorEnableDrafts          = false
+	DefaultFeaturesSearchEnabled               = false
+	DefaultFeaturesCommentsEnabled             = false
+	DefaultMetaFavicon                         = "/static/favicon.ico"
+	DefaultLoggingLevel                        = "info"
 )

@@ -1,0 +1,24 @@
+{{define "title"}}
+{{if .SiteToolbarTitle }}
+{{ .SiteToolbarTitle }} - {{.SiteName }}
+{{else}}
+About - {{.SiteName }}
+{{end}}
+{{end}}
+
+{{define "content"}}
+<div style="display: flex; gap: 3rem; align-items: flex-start; max-width: 120ch; margin: 0 auto;">
+    <div style="flex-shrink: 0; padding-top: 1.5rem">
+        <img src="{{.ProfileImage}}" alt="Profile Picture" style="width: 15rem; height: 15rem; border-radius: 50%; object-fit: cover;" />
+        <p style="text-align: center; margin-top: 1rem; font-style: italic; color: var(--text-color-muted);">{{.ProfileName}}</p>
+        <p style="text-align: center; margin-top: 0.5rem; font-size: 0.9rem;">
+            <a href="{{.ProfileCVURL}}" target="_blank">download cv</a>
+            <span style="margin: 0 0.5rem; color: var(--text-color-muted);">|</span>
+            <a href="mailto:{{.ProfileEmail}}">get in touch</a>
+        </p>
+    </div>
+    <div style="flex: 1;">
+        {{.ProfileContent}}
+    </div>
+</div>
+{{end}}
