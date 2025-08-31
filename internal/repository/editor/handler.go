@@ -47,9 +47,12 @@ func (h *Handler) ServeNewDraftEditor(w http.ResponseWriter, r *http.Request) {
 		}
 
 		http.SetCookie(w, &http.Cookie{
-			Name:  config.CookieDraftID,
-			Value: string(draft.ID),
-			Path:  "/",
+			Name:     config.CookieDraftID,
+			Value:    string(draft.ID),
+			Path:     "/",
+			SameSite: http.SameSiteStrictMode,
+			Secure:   r.TLS != nil,
+			MaxAge:   3600 * 24, // 24 hours
 		})
 	}
 

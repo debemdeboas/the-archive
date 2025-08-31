@@ -662,10 +662,52 @@ main#content #post-title {
   }
 }
 
-/* Profile image hover effect */
-img[alt="Profile Picture"]:hover {
+/* About page styles */
+.about-container {
+  display: flex;
+  gap: 3rem;
+  align-items: flex-start;
+  max-width: 120ch;
+  margin: 0 auto;
+}
+
+.about-sidebar {
+  flex-shrink: 0;
+  padding-top: 1.5rem;
+}
+
+.about-content {
+  flex: 1;
+}
+
+.profile-image {
+  width: 15rem;
+  height: 15rem;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.profile-image:hover {
   transform: scale(1.05);
   box-shadow: 0 8px 32px var(--shadow-color);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.profile-name {
+  text-align: center;
+  margin-top: 1rem;
+  font-style: italic;
+  color: var(--text-color-muted);
+}
+
+.profile-links {
+  text-align: center;
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.profile-links-separator {
+  margin: 0 0.5rem;
+  color: var(--text-color-muted);
 }
 

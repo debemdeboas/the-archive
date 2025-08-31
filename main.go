@@ -236,7 +236,14 @@ func (app *Application) servePartialsPost(w http.ResponseWriter, r *http.Request
 }
 
 func (app *Application) serveNewPost(w http.ResponseWriter, r *http.Request) {
-	http.SetCookie(w, &http.Cookie{Name: config.CookieDraftID, Value: "", Path: "/"})
+	http.SetCookie(w, &http.Cookie{
+		Name:     config.CookieDraftID,
+		Value:    "",
+		Path:     "/",
+		SameSite: http.SameSiteStrictMode,
+		Secure:   r.TLS != nil,
+		MaxAge:   -1, // Delete cookie
+	})
 	w.Header().Add(config.HHxRedirect, routes.NewPostEdit)
 	http.Redirect(w, r, routes.NewPostEdit, http.StatusFound)
 }
