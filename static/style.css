@@ -711,3 +711,26 @@ main#content #post-title {
   color: var(--text-color-muted);
 }
 
+/* Mobile responsiveness for about page */
+@media (max-width: 768px) {
+  .about-container {
+    flex-direction: column;
+    gap: 1.5rem;
+    align-items: center;
+    text-align: center;
+  }
+
+  .about-sidebar {
+    padding-top: 0;
+  }
+
+  .profile-image {
+    width: 8rem;
+    height: 8rem;
+  }
+
+  .about-content {
+    text-align: left;
+  }
+}
+
